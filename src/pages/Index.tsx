@@ -1,8 +1,8 @@
 
-import { FireTVApp } from '@/components/FireTVApp';
+import { AppSwitcher } from '@/components/AppSwitcher';
 
 const Index = () => {
-  return <FireTVApp />;
+  return <AppSwitcher />;
 };
 
 export default Index;
