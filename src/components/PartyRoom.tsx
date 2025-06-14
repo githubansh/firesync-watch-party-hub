@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { 
   ArrowLeft, 
   Play, 
@@ -19,7 +20,14 @@ import {
   Laugh,
   Zap,
   Copy,
-  Settings
+  Settings,
+  Share2,
+  Timer,
+  Vote,
+  Crown,
+  Smartphone,
+  Wifi,
+  Bell
 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 
@@ -33,7 +41,7 @@ interface ChatMessage {
   user: string;
   message: string;
   timestamp: Date;
-  type: 'message' | 'reaction' | 'system';
+  type: 'message' | 'reaction' | 'system' | 'notification';
 }
 
 interface User {
@@ -41,6 +49,8 @@ interface User {
   name: string;
   isHost: boolean;
   status: 'connected' | 'syncing' | 'disconnected';
+  hasRemoteControl: boolean;
+  device: string;
 }
 
 export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
@@ -48,6 +58,11 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(7200); // 2 hours in seconds
   const [chatMessage, setChatMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
+  const [countdownMinutes, setCountdownMinutes] = useState(20);
+  const [democraticMode, setDemocraticMode] = useState(true);
+  const [pendingVotes, setPendingVotes] = useState<{pause: number, play: number}>({pause: 0, play: 0});
+  
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -55,13 +70,21 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
       message: `Welcome to room ${roomCode}! The party is about to begin.`,
       timestamp: new Date(Date.now() - 60000),
       type: 'system'
+    },
+    {
+      id: '2',
+      user: 'System',
+      message: `Alice joined the party from Living Room Fire TV`,
+      timestamp: new Date(Date.now() - 45000),
+      type: 'system'
     }
   ]);
+  
   const [users] = useState<User[]>([
-    { id: '1', name: 'You (Host)', isHost: true, status: 'connected' },
-    { id: '2', name: 'Alice', isHost: false, status: 'connected' },
-    { id: '3', name: 'Bob', isHost: false, status: 'syncing' },
-    { id: '4', name: 'Charlie', isHost: false, status: 'connected' }
+    { id: '1', name: 'You (Host)', isHost: true, status: 'connected', hasRemoteControl: true, device: 'Fire TV Stick 4K' },
+    { id: '2', name: 'Alice', isHost: false, status: 'connected', hasRemoteControl: true, device: 'Fire TV Cube' },
+    { id: '3', name: 'Bob', isHost: false, status: 'syncing', hasRemoteControl: false, device: 'Fire TV Stick' },
+    { id: '4', name: 'Charlie', isHost: false, status: 'connected', hasRemoteControl: true, device: 'Fire TV Stick 4K Max' }
   ]);
 
   useEffect(() => {
@@ -82,19 +105,44 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
   };
 
   const handlePlay = () => {
+    if (democraticMode && !users.find(u => u.name === 'You (Host)')?.isHost) {
+      // Voting system for non-hosts
+      const action = isPlaying ? 'pause' : 'play';
+      setPendingVotes(prev => ({
+        ...prev,
+        [action]: prev[action] + 1
+      }));
+      addSystemMessage(`Vote to ${action} received (${pendingVotes[action] + 1}/${users.length - 1} needed)`);
+      return;
+    }
+
     setIsPlaying(!isPlaying);
     const action = isPlaying ? 'paused' : 'played';
-    addSystemMessage(`Host ${action} the video`);
+    addSystemMessage(`Host ${action} the video for everyone`);
     toast({
       title: `Video ${isPlaying ? 'Paused' : 'Playing'}`,
-      description: `All devices have been ${action}`,
+      description: `All Fire TVs have been synchronized`,
     });
   };
 
   const handleSeek = (direction: 'back' | 'forward') => {
     const seekAmount = direction === 'back' ? -10 : 10;
     setCurrentTime(prev => Math.max(0, Math.min(prev + seekAmount, duration)));
-    addSystemMessage(`Host ${direction === 'back' ? 'rewound' : 'fast-forwarded'} 10 seconds`);
+    addSystemMessage(`Host ${direction === 'back' ? 'rewound' : 'fast-forwarded'} 10 seconds on all devices`);
+  };
+
+  const sendCountdownNotification = () => {
+    const notificationMessage = `🎬 Movie starting in ${countdownMinutes} minutes! Please get ready with snacks and drinks. See you in the living room! 🍿`;
+    
+    addSystemMessage(`Countdown notification sent to all family members`);
+    setShowNotification(true);
+    
+    toast({
+      title: "Notification Sent!",
+      description: `All family members notified - movie starts in ${countdownMinutes} minutes`,
+    });
+
+    setTimeout(() => setShowNotification(false), 5000);
   };
 
   const addSystemMessage = (message: string) => {
@@ -141,8 +189,35 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
     });
   };
 
+  const shareRoom = () => {
+    const shareText = `Join our FireSync watch party! Room code: ${roomCode} 🎬🍿`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'FireSync Watch Party',
+        text: shareText,
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      toast({
+        title: "Share text copied!",
+        description: "Share this with your family members",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Countdown Notification Overlay */}
+      {showNotification && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-orange-500/90 backdrop-blur-lg border-orange-400 p-6 max-w-md text-center">
+            <Bell className="w-12 h-12 text-white mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Notification Sent!</h3>
+            <p className="text-white/90">All family members have been notified that the movie starts in {countdownMinutes} minutes.</p>
+          </Card>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -157,7 +232,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
               Leave
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-white">Watch Party</h1>
+              <h1 className="text-2xl font-bold text-white">Family Watch Party</h1>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">Room:</span>
                 <Badge 
@@ -167,12 +242,27 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                   {roomCode}
                   <Copy className="w-3 h-3 ml-1" />
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                  onClick={shareRoom}
+                >
+                  <Share2 className="w-3 h-3 mr-1" />
+                  Share
+                </Button>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-gray-400" />
-            <span className="text-white">{users.length}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-400" />
+              <span className="text-white">{users.length}</span>
+            </div>
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+              <Zap className="w-3 h-3 mr-1" />
+              All Synced
+            </Badge>
           </div>
         </div>
 
@@ -194,29 +284,40 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                   {isPlaying ? 'Now Playing' : 'Ready to Stream'}
                 </p>
                 <p className="text-gray-400">
-                  Content will appear here when streaming begins
+                  Content synced across all Fire TV devices
                 </p>
               </div>
               
               {/* Sync Status Overlay */}
               <div className="absolute top-4 right-4">
                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                  <Zap className="w-3 h-3 mr-1" />
-                  Synced
+                  <Wifi className="w-3 h-3 mr-1" />
+                  &lt;50ms sync
                 </Badge>
               </div>
+
+              {/* Democratic Mode Indicator */}
+              {democraticMode && (
+                <div className="absolute top-4 left-4">
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    <Vote className="w-3 h-3 mr-1" />
+                    Democratic Mode
+                  </Badge>
+                </div>
+              )}
             </Card>
 
-            {/* Player Controls */}
+            {/* Enhanced Player Controls */}
             <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-6">
               <div className="space-y-4">
                 {/* Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-gray-400">
                     <span>{formatTime(currentTime)}</span>
+                    <span>Netflix • The Avengers</span>
                     <span>{formatTime(duration)}</span>
                   </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
+                  <div className="w-full bg-white/10 rounded-full h-2 cursor-pointer">
                     <div 
                       className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(currentTime / duration) * 100}%` }}
@@ -233,6 +334,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                     onClick={() => handleSeek('back')}
                   >
                     <SkipBack className="w-4 h-4" />
+                    <span className="ml-1 text-xs">10s</span>
                   </Button>
                   
                   <Button
@@ -252,6 +354,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                     className="border-white/20 text-white hover:bg-white/10"
                     onClick={() => handleSeek('forward')}
                   >
+                    <span className="mr-1 text-xs">10s</span>
                     <SkipForward className="w-4 h-4" />
                   </Button>
                   
@@ -271,44 +374,97 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                     <Settings className="w-4 h-4" />
                   </Button>
                 </div>
+
+                {/* Democratic Controls */}
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={democraticMode} 
+                      onCheckedChange={setDemocraticMode}
+                    />
+                    <span className="text-white text-sm">Democratic Remote Control</span>
+                  </div>
+                  {pendingVotes.pause > 0 || pendingVotes.play > 0 ? (
+                    <div className="text-sm text-orange-400">
+                      Votes: Pause {pendingVotes.pause} | Play {pendingVotes.play}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </Card>
+
+            {/* Host Controls */}
+            <Card className="bg-orange-500/10 border-orange-500/20 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Crown className="w-5 h-5 text-orange-400" />
+                <h3 className="font-semibold text-white">Host Controls</h3>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-orange-400" />
+                  <Input
+                    type="number"
+                    value={countdownMinutes}
+                    onChange={(e) => setCountdownMinutes(Number(e.target.value))}
+                    className="w-20 bg-white/10 border-white/20 text-white"
+                    min="1"
+                    max="60"
+                  />
+                  <span className="text-gray-400 text-sm">minutes</span>
+                </div>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  onClick={sendCountdownNotification}
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  Notify Family
+                </Button>
               </div>
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Enhanced Sidebar */}
           <div className="space-y-6">
-            {/* Users List */}
+            {/* Users List with Device Info */}
             <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Participants ({users.length})
+                Family Members ({users.length})
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        user.status === 'connected' ? 'bg-green-400' :
-                        user.status === 'syncing' ? 'bg-yellow-400' :
-                        'bg-red-400'
-                      }`} />
-                      <span className="text-white text-sm">{user.name}</span>
+                  <div key={user.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          user.status === 'connected' ? 'bg-green-400' :
+                          user.status === 'syncing' ? 'bg-yellow-400' :
+                          'bg-red-400'
+                        }`} />
+                        <span className="text-white text-sm">{user.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {user.isHost && (
+                          <Crown className="w-3 h-3 text-orange-400" />
+                        )}
+                        {user.hasRemoteControl && (
+                          <Smartphone className="w-3 h-3 text-blue-400" />
+                        )}
+                      </div>
                     </div>
-                    {user.isHost && (
-                      <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
-                        Host
-                      </Badge>
-                    )}
+                    <div className="text-xs text-gray-400 ml-4">
+                      {user.device} • {user.status}
+                    </div>
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* Chat */}
+            {/* Enhanced Chat */}
             <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4 flex flex-col h-96">
               <div className="flex items-center gap-2 mb-4">
                 <MessageCircle className="w-4 h-4 text-white" />
-                <h3 className="font-semibold text-white">Live Chat</h3>
+                <h3 className="font-semibold text-white">Family Chat</h3>
               </div>
               
               <ScrollArea className="flex-1 mb-4">
@@ -317,6 +473,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                     <div key={msg.id} className={`text-sm ${
                       msg.type === 'system' ? 'text-gray-400 italic' :
                       msg.type === 'reaction' ? 'text-center' :
+                      msg.type === 'notification' ? 'text-orange-400 font-semibold' :
                       'text-white'
                     }`}>
                       {msg.type === 'reaction' ? (
@@ -325,6 +482,9 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                         <>
                           <span className="font-semibold text-orange-400">{msg.user}:</span>
                           <span className="ml-2">{msg.message}</span>
+                          <div className="text-xs text-gray-500 ml-2">
+                            {msg.timestamp.toLocaleTimeString()}
+                          </div>
                         </>
                       )}
                     </div>
@@ -332,7 +492,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                 </div>
               </ScrollArea>
 
-              {/* Quick Reactions */}
+              {/* Enhanced Quick Reactions */}
               <div className="flex gap-2 mb-3">
                 <Button
                   size="sm"
@@ -362,6 +522,14 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                   size="sm"
                   variant="outline"
                   className="border-white/20 hover:bg-white/10 text-lg p-2"
+                  onClick={() => sendReaction('🍿')}
+                >
+                  🍿
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/20 hover:bg-white/10 text-lg p-2"
                   onClick={() => sendReaction('👏')}
                 >
                   👏
@@ -373,7 +541,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                 <Input
                   value={chatMessage}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder="Chat with family..."
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 text-sm"
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                 />
