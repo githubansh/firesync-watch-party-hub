@@ -13,7 +13,6 @@ import {
   Copy, 
   CheckCircle, 
   Wifi, 
-  Share2, 
   Settings,
   Zap,
   Crown,
@@ -137,7 +136,7 @@ export const FireTVApp = () => {
                     </Button>
                   </div>
                 </Card>
-              </div>
+              </Card>
             </div>
 
             {/* Sidebar Info */}
