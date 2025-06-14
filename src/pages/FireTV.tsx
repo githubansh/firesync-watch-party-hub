@@ -1,5 +1,5 @@
 
-import { FireTVApp } from '@/components/FireTVApp';
+import { FireTVApp } from '@/components/firetv/FireTVApp';
 
 const FireTV = () => {
   return <FireTVApp />;

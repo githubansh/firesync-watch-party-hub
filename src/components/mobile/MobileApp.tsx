@@ -74,7 +74,7 @@ export const MobileApp = () => {
     { id: '1', name: 'Living Room Fire TV', type: 'fire-tv', status: 'connected', isHost: true },
     { id: '2', name: 'Dad\'s Phone', type: 'mobile', status: 'connected', isHost: false },
     { id: '3', name: 'Mom\'s Phone', type: 'mobile', status: 'connected', isHost: false },
-    { id: '4', name: 'Bedroom Fire TV', type: 'fire-tv', status: 'syncing', isHost: false }
+    { id: '4', name: 'Bedroom Fire TV', type: 'mobile', status: 'syncing', isHost: false }
   ]);
 
   useEffect(() => {

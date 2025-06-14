@@ -1,5 +1,5 @@
 
-import { MobileApp } from '@/components/MobileApp';
+import { MobileApp } from '@/components/mobile/MobileApp';
 
 const Mobile = () => {
   return <MobileApp />;
