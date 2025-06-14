@@ -30,7 +30,7 @@ export const AppSwitcher = () => {
             </Button>
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
