@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,7 +26,7 @@ import {
   Bell,
   Heart,
   Laugh,
-  Fire,
+  Flame,
   Coffee
 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
