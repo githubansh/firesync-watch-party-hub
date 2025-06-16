@@ -22,14 +22,19 @@ export const useRoomManagement = () => {
   const createRoom = async (data: CreateRoomData) => {
     setIsLoading(true);
     try {
+      console.log('Creating room with data:', data);
+      
       const { data: result, error } = await supabase.functions.invoke('create-room', {
         body: data,
       });
 
       if (error) {
+        console.error('Create room error:', error);
         throw error;
       }
 
+      console.log('Room created successfully:', result);
+      
       toast({
         title: "Room Created!",
         description: `Your party room ${result.room.code} is ready`,
@@ -37,6 +42,7 @@ export const useRoomManagement = () => {
 
       return result.room;
     } catch (error: any) {
+      console.error('Create room failed:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create room",
@@ -51,14 +57,19 @@ export const useRoomManagement = () => {
   const joinRoom = async (data: JoinRoomData) => {
     setIsLoading(true);
     try {
+      console.log('Joining room with data:', data);
+      
       const { data: result, error } = await supabase.functions.invoke('join-room', {
         body: data,
       });
 
       if (error) {
+        console.error('Join room error:', error);
         throw error;
       }
 
+      console.log('Joined room successfully:', result);
+      
       toast({
         title: "Connected!",
         description: `Joined room ${data.roomCode} successfully`,
@@ -66,6 +77,7 @@ export const useRoomManagement = () => {
 
       return result.room;
     } catch (error: any) {
+      console.error('Join room failed:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to join room",

@@ -33,7 +33,9 @@ serve(async (req) => {
 
     const { roomCode, username, deviceType, deviceName } = await req.json()
 
-    // Find room by code
+    console.log('Join room request:', { roomCode, username, deviceType, deviceName, userId: user.id })
+
+    // Find room by code with explicit table reference
     const { data: room, error: roomError } = await supabaseClient
       .from('rooms')
       .select('*')
@@ -42,21 +44,33 @@ serve(async (req) => {
       .single()
 
     if (roomError || !room) {
+      console.error('Room lookup error:', roomError)
       return new Response(
         JSON.stringify({ error: 'Room not found or no longer available' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    console.log('Found room:', room)
+
     // Check if user is already in the room
-    const { data: existingParticipant } = await supabaseClient
+    const { data: existingParticipant, error: participantLookupError } = await supabaseClient
       .from('participants')
       .select('*')
       .eq('room_id', room.id)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
+
+    if (participantLookupError) {
+      console.error('Participant lookup error:', participantLookupError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing participation' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     if (existingParticipant) {
+      console.log('Updating existing participant:', existingParticipant.id)
       // Update existing participant
       const { error: updateError } = await supabaseClient
         .from('participants')
@@ -70,9 +84,11 @@ serve(async (req) => {
         .eq('id', existingParticipant.id)
 
       if (updateError) {
+        console.error('Update participant error:', updateError)
         throw updateError
       }
     } else {
+      console.log('Creating new participant')
       // Add new participant
       const { error: participantError } = await supabaseClient
         .from('participants')
@@ -86,15 +102,18 @@ serve(async (req) => {
         })
 
       if (participantError) {
+        console.error('Create participant error:', participantError)
         throw participantError
       }
     }
 
+    console.log('Successfully joined room')
     return new Response(
       JSON.stringify({ room }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Join room function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
