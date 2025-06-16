@@ -7,23 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Smartphone, Users, Wifi, Tv, CheckCircle } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+import { useRoomManagement } from '@/hooks/useRoomManagement';
 
 interface JoinRoomProps {
-  onRoomJoined: (code: string) => void;
+  onRoomJoined: (roomId: string) => void;
   onBack: () => void;
 }
 
 export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
   const [roomCode, setRoomCode] = useState('');
   const [username, setUsername] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
   const [step, setStep] = useState<'join' | 'connecting'>('join');
   const [discoveredTVs] = useState([
     { id: '1', name: 'Living Room Fire TV', status: 'connected' },
     { id: '2', name: 'Bedroom Fire TV', status: 'available' }
   ]);
 
-  const handleJoinRoom = () => {
+  const { joinRoom, isLoading } = useRoomManagement();
+
+  const handleJoinRoom = async () => {
     if (!roomCode.trim()) {
       toast({
         title: "Error",
@@ -42,27 +44,20 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
       return;
     }
 
-    setIsJoining(true);
     setStep('connecting');
     
-    // Simulate connection process
-    setTimeout(() => {
-      if (roomCode.length === 6) {
-        onRoomJoined(roomCode.toUpperCase());
-        toast({
-          title: "Connected!",
-          description: `Joined room ${roomCode.toUpperCase()} successfully`,
-        });
-      } else {
-        toast({
-          title: "Invalid Code",
-          description: "Room code should be 6 characters",
-          variant: "destructive",
-        });
-        setIsJoining(false);
-        setStep('join');
-      }
-    }, 3000);
+    try {
+      const room = await joinRoom({
+        roomCode: roomCode.toUpperCase(),
+        username,
+        deviceType: 'mobile',
+        deviceName: 'Mobile Device',
+      });
+
+      onRoomJoined(room.id);
+    } catch (error) {
+      setStep('join');
+    }
   };
 
   const formatRoomCode = (value: string) => {
@@ -207,9 +202,9 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
           <Button 
             className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
             onClick={handleJoinRoom}
-            disabled={isJoining || !roomCode.trim() || !username.trim()}
+            disabled={isLoading || !roomCode.trim() || !username.trim()}
           >
-            {isJoining ? (
+            {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
                 Connecting...

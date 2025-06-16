@@ -7,40 +7,41 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Tv, Users, Copy, CheckCircle, Wifi, Smartphone, Timer, Share2 } from 'lucide-react';
+import { ArrowLeft, Tv, Users, Copy, CheckCircle, Share2 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+import { useRoomManagement } from '@/hooks/useRoomManagement';
 
 interface CreateRoomProps {
-  onRoomCreated: (code: string) => void;
+  onRoomCreated: (roomId: string) => void;
   onBack: () => void;
 }
 
 export const CreateRoom = ({ onRoomCreated, onBack }: CreateRoomProps) => {
   const [roomName, setRoomName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [roomCode, setRoomCode] = useState('');
   const [step, setStep] = useState<'setup' | 'created' | 'invite'>('setup');
   const [allowRemoteControl, setAllowRemoteControl] = useState(true);
   const [autoDiscovery, setAutoDiscovery] = useState(true);
+  const [roomCode, setRoomCode] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [shareableLink, setShareableLink] = useState('');
 
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substr(2, 6).toUpperCase();
-  };
+  const { createRoom, isLoading } = useRoomManagement();
 
-  const handleCreateRoom = () => {
-    setIsCreating(true);
-    setTimeout(() => {
-      const code = generateRoomCode();
-      setRoomCode(code);
-      setShareableLink(`https://firesync.app/join/${code}`);
-      setStep('created');
-      setIsCreating(false);
-      toast({
-        title: "Room Created!",
-        description: `Your party room ${code} is ready`,
+  const handleCreateRoom = async () => {
+    try {
+      const room = await createRoom({
+        name: roomName || 'Family Movie Night',
+        allowRemoteControl,
+        autoDiscovery,
       });
-    }, 2000);
+
+      setRoomCode(room.code);
+      setRoomId(room.id);
+      setShareableLink(`https://firesync.app/join/${room.code}`);
+      setStep('created');
+    } catch (error) {
+      // Error is handled in the hook
+    }
   };
 
   const copyRoomCode = () => {
@@ -120,19 +121,9 @@ export const CreateRoom = ({ onRoomCreated, onBack }: CreateRoomProps) => {
               </Button>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <h3 className="font-semibold text-white mb-2">Quick Setup Instructions</h3>
-              <ul className="text-sm text-gray-300 space-y-1">
-                <li>1. Family members install FireSync mobile app</li>
-                <li>2. They enter room code: <span className="font-mono text-orange-400">{roomCode}</span></li>
-                <li>3. App auto-discovers their Fire TV (same WiFi)</li>
-                <li>4. Ready to watch together!</li>
-              </ul>
-            </div>
-
             <Button 
               className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-              onClick={() => onRoomCreated(roomCode)}
+              onClick={() => onRoomCreated(roomId)}
             >
               Start Watch Party
             </Button>
@@ -214,7 +205,7 @@ export const CreateRoom = ({ onRoomCreated, onBack }: CreateRoomProps) => {
               </Button>
               <Button 
                 className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-                onClick={() => onRoomCreated(roomCode)}
+                onClick={() => onRoomCreated(roomId)}
               >
                 Enter Room
               </Button>
@@ -302,9 +293,9 @@ export const CreateRoom = ({ onRoomCreated, onBack }: CreateRoomProps) => {
           <Button 
             className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
             onClick={handleCreateRoom}
-            disabled={isCreating}
+            disabled={isLoading}
           >
-            {isCreating ? (
+            {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
                 Setting Up Party...
