@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -35,7 +35,7 @@ serve(async (req) => {
 
     console.log('Join room request:', { roomCode, username, deviceType, deviceName, userId: user.id })
 
-    // Find room by code with explicit table reference
+    // Find room by code - using service role to bypass RLS
     const { data: room, error: roomError } = await supabaseClient
       .from('rooms')
       .select('*')
@@ -53,7 +53,7 @@ serve(async (req) => {
 
     console.log('Found room:', room)
 
-    // Check if user is already in the room
+    // Check if user is already in the room - using service role to bypass RLS
     const { data: existingParticipant, error: participantLookupError } = await supabaseClient
       .from('participants')
       .select('*')
@@ -85,7 +85,10 @@ serve(async (req) => {
 
       if (updateError) {
         console.error('Update participant error:', updateError)
-        throw updateError
+        return new Response(
+          JSON.stringify({ error: 'Failed to update participation' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     } else {
       console.log('Creating new participant')
@@ -103,7 +106,10 @@ serve(async (req) => {
 
       if (participantError) {
         console.error('Create participant error:', participantError)
-        throw participantError
+        return new Response(
+          JSON.stringify({ error: 'Failed to join room' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     }
 
@@ -116,7 +122,7 @@ serve(async (req) => {
     console.error('Join room function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
