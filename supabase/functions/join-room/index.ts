@@ -14,10 +14,15 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? '',      // ← updated here
+      Deno.env.get('SERVICE_ROLE_KEY') ?? '',      // your service-role key
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: {
+            // the user's JWT for auth.getUser()
+            Authorization: req.headers.get('Authorization')!,
+            // your service-role key again as apikey to bypass RLS on all from()/insert()/update()
+            apikey:       Deno.env.get('SERVICE_ROLE_KEY')!,
+          },
         },
       }
     )
@@ -125,4 +130,3 @@ serve(async (req) => {
     )
   }
 })
-
