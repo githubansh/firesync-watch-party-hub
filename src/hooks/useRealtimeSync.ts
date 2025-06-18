@@ -76,7 +76,8 @@ export const useRealtimeSync = (roomId: string | null) => {
           const { data } = await supabase
             .from('participants')
             .select('*')
-            .eq('room_id', roomId);
+            .eq('room_id', roomId)
+            .order('joined_at', { ascending: true });
           
           if (data) {
             setParticipants(data);
@@ -127,7 +128,7 @@ export const useRealtimeSync = (roomId: string | null) => {
       
       const [roomResult, participantsResult, chatResult] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).single(),
-        supabase.from('participants').select('*').eq('room_id', roomId),
+        supabase.from('participants').select('*').eq('room_id', roomId).order('joined_at', { ascending: true }),
         supabase.from('chat_messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
       ]);
 
@@ -161,7 +162,7 @@ export const useRealtimeSync = (roomId: string | null) => {
     try {
       console.log('Sending sync event:', { eventType, eventData });
       
-      await supabase.functions.invoke('sync-playback', {
+      const { data, error } = await supabase.functions.invoke('sync-playback', {
         body: {
           roomId,
           eventType,
@@ -169,6 +170,13 @@ export const useRealtimeSync = (roomId: string | null) => {
           timestampMs: Date.now(),
         },
       });
+
+      if (error) {
+        console.error('Sync event error:', error);
+        throw error;
+      }
+
+      console.log('Sync event sent successfully:', data);
     } catch (error) {
       console.error('Failed to send sync event:', error);
     }

@@ -38,18 +38,34 @@ serve(async (req) => {
 
     console.log('Join room request:', { roomCode, username, deviceType, deviceName, userId: user.id })
 
-    // Find room by code
+    // Find room by code - make case insensitive search and check multiple statuses
     const { data: room, error: roomError } = await supabaseClient
       .from('rooms')
       .select('*')
-      .eq('code', roomCode.toUpperCase())
-      .eq('status', 'waiting')
+      .ilike('code', roomCode)
+      .in('status', ['waiting', 'active'])
       .single()
 
     if (roomError || !room) {
       console.error('Room lookup error:', roomError)
+      
+      // Let's also check if any room exists with this code regardless of status
+      const { data: anyRoom } = await supabaseClient
+        .from('rooms')
+        .select('id, status')
+        .ilike('code', roomCode)
+        .maybeSingle()
+        
+      if (anyRoom) {
+        console.log('Room exists but has status:', anyRoom.status)
+        return new Response(
+          JSON.stringify({ error: `Room ${roomCode} is ${anyRoom.status}. Only waiting or active rooms can be joined.` }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Room not found or no longer available' }),
+        JSON.stringify({ error: `Room ${roomCode} not found` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

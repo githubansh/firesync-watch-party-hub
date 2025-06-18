@@ -15,10 +15,13 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: {
+            Authorization: req.headers.get('Authorization')!,
+            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+          },
         },
       }
     )
@@ -31,31 +34,42 @@ serve(async (req) => {
       )
     }
 
-    const { name, allowRemoteControl, autoDiscovery } = await req.json()
+    const { name = 'Family Movie Night', allowRemoteControl = true, autoDiscovery = true } = await req.json()
+
+    console.log('Creating room for user:', user.id, { name, allowRemoteControl, autoDiscovery })
 
     // Generate room code
-    const { data: codeData, error: codeError } = await supabaseClient
+    const { data: roomCode, error: codeError } = await supabaseClient
       .rpc('generate_room_code')
 
-    if (codeError) {
-      throw codeError
+    if (codeError || !roomCode) {
+      console.error('Failed to generate room code:', codeError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate room code' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Create room
     const { data: room, error: roomError } = await supabaseClient
       .from('rooms')
       .insert({
-        code: codeData,
-        name: name || 'Watch Party',
+        code: roomCode,
+        name,
         host_id: user.id,
-        allow_remote_control: allowRemoteControl ?? true,
-        auto_discovery: autoDiscovery ?? true,
+        status: 'waiting',
+        allow_remote_control: allowRemoteControl,
+        auto_discovery: autoDiscovery,
       })
       .select()
       .single()
 
     if (roomError) {
-      throw roomError
+      console.error('Room creation error:', roomError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to create room' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Add host as participant
@@ -64,24 +78,27 @@ serve(async (req) => {
       .insert({
         room_id: room.id,
         user_id: user.id,
-        username: user.email?.split('@')[0] || 'Host',
+        username: 'Host',
         role: 'host',
         device_type: 'firetv',
         device_name: 'Host Device',
       })
 
     if (participantError) {
-      throw participantError
+      console.error('Host participant creation error:', participantError)
+      // Don't fail room creation if participant creation fails
     }
 
+    console.log('Room created successfully:', room)
     return new Response(
       JSON.stringify({ room }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Create room function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
