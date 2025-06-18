@@ -13,19 +13,43 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: req.headers.get('Authorization')!,
-            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-          },
-        },
-      }
-    )
 
+--- a/supabase/functions/join-room/index.ts
++++ b/supabase/functions/join-room/index.ts
+@@ serve(async (req) => {
+-    const supabaseClient = createClient(
+-      Deno.env.get('SUPABASE_URL') ?? '',
+-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+-      {
+-        global: {
+-          headers: {
+-            Authorization: req.headers.get('Authorization')!,
+-            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+-          },
+-        },
+-      }
+-    )
++    const supabaseClient = createClient(
++      // 1) Your Supabase URL
++      Deno.env.get('SUPABASE_URL')!,
++      // 2) The secret you created under Edge Functions → Secrets
++      Deno.env.get('SERVICE_ROLE_KEY')!,
++      {
++        global: {
++          headers: {
++            // Pass the user JWT so auth.getUser() works
++            Authorization: req.headers.get('Authorization')!,
++            // Pass the service-role key as apikey so every .from() bypasses RLS
++            apikey:       Deno.env.get('SERVICE_ROLE_KEY')!,
++          },
++        },
++      }
++    )
+
+
+
+
+    
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) {
       return new Response(
