@@ -22,10 +22,21 @@ interface Room {
   current_content_url?: string;
 }
 
+interface ChatMessage {
+  id: string;
+  room_id: string;
+  user_id: string;
+  username: string;
+  message: string;
+  message_type: string;
+  created_at: string;
+}
+
 export const useRealtimeSync = (roomId: string | null) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -42,6 +53,7 @@ export const useRealtimeSync = (roomId: string | null) => {
           filter: `id=eq.${roomId}`,
         },
         (payload) => {
+          console.log('Room updated:', payload.new);
           setRoom(payload.new as Room);
         }
       )
@@ -59,6 +71,7 @@ export const useRealtimeSync = (roomId: string | null) => {
           filter: `room_id=eq.${roomId}`,
         },
         async () => {
+          console.log('Participants changed, refetching...');
           // Refetch participants when changes occur
           const { data } = await supabase
             .from('participants')
@@ -84,20 +97,52 @@ export const useRealtimeSync = (roomId: string | null) => {
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
+          console.log('New sync event:', payload.new);
           setSyncEvents(prev => [...prev, payload.new as SyncEvent]);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to chat messages
+    const chatChannel = supabase
+      .channel('chat-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          console.log('New chat message:', payload.new);
+          setChatMessages(prev => [...prev, payload.new as ChatMessage]);
         }
       )
       .subscribe();
 
     // Initial data fetch
     const fetchInitialData = async () => {
-      const [roomResult, participantsResult] = await Promise.all([
+      console.log('Fetching initial data for room:', roomId);
+      
+      const [roomResult, participantsResult, chatResult] = await Promise.all([
         supabase.from('rooms').select('*').eq('id', roomId).single(),
         supabase.from('participants').select('*').eq('room_id', roomId),
+        supabase.from('chat_messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
       ]);
 
-      if (roomResult.data) setRoom(roomResult.data);
-      if (participantsResult.data) setParticipants(participantsResult.data);
+      if (roomResult.data) {
+        console.log('Room data:', roomResult.data);
+        setRoom(roomResult.data);
+      }
+      if (participantsResult.data) {
+        console.log('Participants data:', participantsResult.data);
+        setParticipants(participantsResult.data);
+      }
+      if (chatResult.data) {
+        console.log('Chat messages data:', chatResult.data);
+        setChatMessages(chatResult.data);
+      }
     };
 
     fetchInitialData();
@@ -106,6 +151,7 @@ export const useRealtimeSync = (roomId: string | null) => {
       supabase.removeChannel(roomChannel);
       supabase.removeChannel(participantChannel);
       supabase.removeChannel(syncChannel);
+      supabase.removeChannel(chatChannel);
     };
   }, [roomId]);
 
@@ -113,6 +159,8 @@ export const useRealtimeSync = (roomId: string | null) => {
     if (!roomId) return;
 
     try {
+      console.log('Sending sync event:', { eventType, eventData });
+      
       await supabase.functions.invoke('sync-playback', {
         body: {
           roomId,
@@ -130,6 +178,7 @@ export const useRealtimeSync = (roomId: string | null) => {
     room,
     participants,
     syncEvents,
+    chatMessages,
     sendSyncEvent,
   };
 };

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -14,14 +15,12 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? '',      // your service-role key
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: {
-            // the user's JWT for auth.getUser()
             Authorization: req.headers.get('Authorization')!,
-            // your service-role key again as apikey to bypass RLS on all from()/insert()/update()
-            apikey:       Deno.env.get('SERVICE_ROLE_KEY')!,
+            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
           },
         },
       }
@@ -39,7 +38,7 @@ serve(async (req) => {
 
     console.log('Join room request:', { roomCode, username, deviceType, deviceName, userId: user.id })
 
-    // Find room by code - using service role to bypass RLS
+    // Find room by code
     const { data: room, error: roomError } = await supabaseClient
       .from('rooms')
       .select('*')
@@ -57,7 +56,7 @@ serve(async (req) => {
 
     console.log('Found room:', room)
 
-    // Check if user is already in the room - using service role to bypass RLS
+    // Check if user is already in the room
     const { data: existingParticipant, error: participantLookupError } = await supabaseClient
       .from('participants')
       .select('*')

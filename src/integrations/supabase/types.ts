@@ -186,6 +186,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      is_participant_in_room: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      is_room_host: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       device_type: "firetv" | "mobile"

@@ -15,10 +15,13 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: {
+            Authorization: req.headers.get('Authorization')!,
+            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+          },
         },
       }
     )
@@ -32,6 +35,8 @@ serve(async (req) => {
     }
 
     const { roomId, eventType, eventData, timestampMs } = await req.json()
+
+    console.log('Sync event:', { roomId, eventType, eventData, timestampMs, userId: user.id })
 
     // Verify user is in the room
     const { data: participant } = await supabaseClient
@@ -60,56 +65,81 @@ serve(async (req) => {
       })
 
     if (syncError) {
+      console.error('Sync event error:', syncError)
       throw syncError
     }
 
     // Update room state based on event type
-    if (eventType === 'play' || eventType === 'pause') {
-      const { error: roomUpdateError } = await supabaseClient
-        .from('rooms')
-        .update({
-          is_playing: eventType === 'play',
-          current_position: eventData?.position || 0,
-        })
-        .eq('id', roomId)
+    let roomUpdateData: any = {}
 
-      if (roomUpdateError) {
-        throw roomUpdateError
-      }
-    } else if (eventType === 'seek') {
-      const { error: roomUpdateError } = await supabaseClient
-        .from('rooms')
-        .update({
+    switch (eventType) {
+      case 'play':
+        roomUpdateData = {
+          is_playing: true,
           current_position: eventData?.position || 0,
-        })
-        .eq('id', roomId)
-
-      if (roomUpdateError) {
-        throw roomUpdateError
-      }
-    } else if (eventType === 'content_change') {
-      const { error: roomUpdateError } = await supabaseClient
-        .from('rooms')
-        .update({
+        }
+        break
+      case 'pause':
+        roomUpdateData = {
+          is_playing: false,
+          current_position: eventData?.position || 0,
+        }
+        break
+      case 'seek':
+        roomUpdateData = {
+          current_position: eventData?.position || 0,
+        }
+        break
+      case 'content_change':
+        roomUpdateData = {
           current_content_url: eventData?.url,
           current_position: 0,
           is_playing: false,
-        })
+        }
+        break
+      case 'start_party':
+        // Host starts the party - change room status to active
+        if (participant.role === 'host') {
+          roomUpdateData = {
+            status: 'active',
+            is_playing: true,
+            current_position: 0,
+          }
+        }
+        break
+      case 'end_party':
+        // Host ends the party
+        if (participant.role === 'host') {
+          roomUpdateData = {
+            status: 'ended',
+            is_playing: false,
+          }
+        }
+        break
+    }
+
+    if (Object.keys(roomUpdateData).length > 0) {
+      const { error: roomUpdateError } = await supabaseClient
+        .from('rooms')
+        .update(roomUpdateData)
         .eq('id', roomId)
 
       if (roomUpdateError) {
+        console.error('Room update error:', roomUpdateError)
         throw roomUpdateError
       }
     }
 
+    console.log('Sync event processed successfully')
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Sync playback function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
