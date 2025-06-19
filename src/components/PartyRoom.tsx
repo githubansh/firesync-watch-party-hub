@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,7 +58,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
       user_id: 'system',
       username: 'System',
       message: `Welcome to ${mockRoom.name}! Everyone is connected and ready.`,
-      message_type: 'system' as const,
+      message_type: 'system',
       created_at: new Date(Date.now() - 120000).toISOString(),
     },
     {
@@ -66,7 +67,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
       user_id: '2',
       username: 'Alice',
       message: 'Ready for movie night! 🍿',
-      message_type: 'text' as const,
+      message_type: 'text',
       created_at: new Date(Date.now() - 60000).toISOString(),
     }
   ];
@@ -84,7 +85,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-teal-900 to-slate-900">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -92,7 +93,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
             <Button 
               variant="outline" 
               size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
               onClick={onLeave}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -102,13 +103,13 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
               <h1 className="text-2xl font-bold text-white">{mockRoom.name}</h1>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">Room:</span>
-                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
                   {mockRoom.code}
                 </Badge>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
                   onClick={() => setShowSharing(!showSharing)}
                 >
                   <Share2 className="w-3 h-3 mr-1" />
@@ -145,14 +146,14 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
             {isHost && mockRoom.status === 'waiting' && (
               <Card className="bg-green-500/10 border-green-500/20 p-6">
                 <div className="text-center">
-                  <Crown className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+                  <Crown className="w-12 h-12 text-teal-400 mx-auto mb-4" />
                   <h3 className="font-semibold text-white mb-2">Ready to Start?</h3>
                   <p className="text-gray-400 text-sm mb-4">
                     {mockParticipants.length} family member{mockParticipants.length !== 1 ? 's' : ''} connected
                   </p>
                   <Button
                     onClick={handleStartParty}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
                   >
                     Start Family Watch Party
                   </Button>
@@ -161,10 +162,10 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
             )}
 
             {/* Video Player Mockup */}
-            <Card className="bg-black border-white/10 aspect-video flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
+            <Card className="bg-black border-teal-500/20 aspect-video flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/20 to-cyan-500/20" />
               <div className="text-center z-10">
-                <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <div className="text-white text-4xl">🎬</div>
                 </div>
                 <p className="text-white text-lg font-semibold mb-2">
@@ -184,7 +185,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
 
               {democraticMode && (
                 <div className="absolute top-4 left-4">
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                  <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
                     Democratic Mode
                   </Badge>
                 </div>
@@ -203,7 +204,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
             )}
 
             {/* Democratic Mode Settings */}
-            <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
+            <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Settings className="w-5 h-5 text-gray-400" />
@@ -223,7 +224,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
           {/* Enhanced Sidebar */}
           <div className="space-y-6">
             {/* Participants List */}
-            <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
+            <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 p-4">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Family Members ({mockParticipants.length})
@@ -240,9 +241,9 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
                       </div>
                       <div className="flex items-center gap-1">
                         {participant.role === 'host' && (
-                          <Crown className="w-3 h-3 text-orange-400" />
+                          <Crown className="w-3 h-3 text-teal-400" />
                         )}
-                        <Smartphone className="w-3 h-3 text-blue-400" />
+                        <Smartphone className="w-3 h-3 text-cyan-400" />
                       </div>
                     </div>
                     <div className="text-xs text-gray-400 ml-4">
