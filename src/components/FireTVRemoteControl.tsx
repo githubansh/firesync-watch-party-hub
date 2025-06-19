@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { 
   Play, 
   Pause, 
@@ -11,21 +11,20 @@ import {
   SkipForward, 
   Volume2, 
   VolumeX,
-  FastForward,
-  Rewind,
   RotateCcw,
+  RotateCw,
   Home,
-  Menu,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   Circle,
-  Square,
-  Triangle,
-  Smartphone,
-  Tv
+  Menu,
+  Search,
+  Mic,
+  Settings
 } from 'lucide-react';
+import { toast } from "@/hooks/use-toast";
 
 interface FireTVRemoteControlProps {
   roomId: string;
@@ -44,288 +43,254 @@ export const FireTVRemoteControl = ({
 }: FireTVRemoteControlProps) => {
   const [volume, setVolume] = useState([75]);
   const [isMuted, setIsMuted] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handlePlayPause = () => {
     const eventType = isPlaying ? 'pause' : 'play';
     onSendSyncEvent(eventType, { position: currentPosition });
+    toast({
+      title: isPlaying ? "Paused" : "Playing",
+      description: "All devices synchronized",
+    });
   };
 
-  const handleSeek = (seconds: number) => {
-    const newPosition = Math.max(0, currentPosition + (seconds * 1000));
+  const handleSeek = (direction: 'forward' | 'backward', seconds: number = 10) => {
+    const newPosition = direction === 'forward' 
+      ? currentPosition + (seconds * 1000)
+      : Math.max(0, currentPosition - (seconds * 1000));
+    
     onSendSyncEvent('seek', { position: newPosition });
+    toast({
+      title: `Seeked ${direction}`,
+      description: `${seconds} seconds`,
+    });
   };
 
   const handleVolumeChange = (newVolume: number[]) => {
     setVolume(newVolume);
-    onSendSyncEvent('volume_change', { volume: newVolume[0] });
+    onSendSyncEvent('volume', { volume: newVolume[0] });
   };
 
   const handleMute = () => {
     setIsMuted(!isMuted);
-    onSendSyncEvent('mute_toggle', { muted: !isMuted });
+    onSendSyncEvent('mute', { muted: !isMuted });
   };
 
   const handleNavigation = (direction: string) => {
     onSendSyncEvent('navigation', { direction });
+    toast({
+      title: "Navigation",
+      description: `Pressed ${direction}`,
+    });
   };
 
-  const handleFireTVAction = (action: string) => {
-    onSendSyncEvent('firetv_action', { action });
+  const handleSpecialButton = (button: string) => {
+    onSendSyncEvent('special_button', { button });
+    toast({
+      title: "Button Pressed",
+      description: button,
+    });
+  };
+
+  const formatTime = (milliseconds: number) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="space-y-4">
-      {/* Remote Control Header */}
-      <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Tv className="w-5 h-5 text-orange-400" />
-            <h3 className="font-semibold text-white">Fire TV Remote</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {isHost && (
-              <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                Host
-              </Badge>
-            )}
-            <Badge className={
-              isPlaying 
-                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                : "bg-red-500/20 text-red-400 border-red-500/30"
+    <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 p-6">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h3 className="font-semibold text-white mb-2 flex items-center justify-center gap-2">
+            🔥📺 Fire TV Remote Control
+          </h3>
+          <div className="flex items-center justify-center gap-4">
+            <Badge className={isPlaying ? 
+              "bg-green-500/20 text-green-400 border-green-500/30" : 
+              "bg-red-500/20 text-red-400 border-red-500/30"
             }>
               {isPlaying ? 'Playing' : 'Paused'}
             </Badge>
+            <span className="text-gray-400 text-sm">
+              Position: {formatTime(currentPosition)}
+            </span>
           </div>
         </div>
 
-        {/* Main Playback Controls */}
-        <div className="space-y-6">
-          {/* Primary Controls */}
-          <div className="flex justify-center items-center gap-4">
-            <Button
-              onClick={() => handleSeek(-30)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <Rewind className="w-5 h-5" />
-              <span className="ml-1 text-xs">30s</span>
-            </Button>
-            
-            <Button
-              onClick={() => handleSeek(-10)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <SkipBack className="w-4 h-4" />
-              <span className="ml-1 text-xs">10s</span>
-            </Button>
-            
-            <Button
-              onClick={handlePlayPause}
-              className="w-16 h-16 rounded-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg"
-            >
-              {isPlaying ? (
-                <Pause className="w-8 h-8" />
-              ) : (
-                <Play className="w-8 h-8 ml-1" />
-              )}
-            </Button>
-            
-            <Button
-              onClick={() => handleSeek(10)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <span className="mr-1 text-xs">10s</span>
-              <SkipForward className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              onClick={() => handleSeek(30)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <span className="mr-1 text-xs">30s</span>
-              <FastForward className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Volume Control */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleMute}
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                {isMuted || volume[0] === 0 ? (
-                  <VolumeX className="w-4 h-4" />
-                ) : (
-                  <Volume2 className="w-4 h-4" />
-                )}
-              </Button>
-              <div className="flex-1">
-                <Slider
-                  value={volume}
-                  onValueChange={handleVolumeChange}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-              <span className="text-white text-sm w-10">{volume[0]}%</span>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Fire TV Navigation */}
-      <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Navigation</h3>
+        {/* Top Navigation Buttons */}
+        <div className="grid grid-cols-3 gap-2">
           <Button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white"
+            variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            onClick={() => handleSpecialButton('Home')}
           >
-            {showAdvanced ? 'Simple' : 'Advanced'}
+            <Home className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            onClick={() => handleSpecialButton('Menu')}
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            onClick={() => handleSpecialButton('Settings')}
+          >
+            <Settings className="w-4 h-4" />
           </Button>
         </div>
 
         {/* D-Pad Navigation */}
-        <div className="space-y-4">
-          <div className="flex flex-col items-center space-y-2">
-            {/* Up Arrow */}
+        <div className="flex justify-center">
+          <div className="grid grid-cols-3 grid-rows-3 gap-1 w-32">
+            <div></div>
             <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
               onClick={() => handleNavigation('up')}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 w-12 h-12"
             >
-              <ArrowUp className="w-5 h-5" />
+              <ArrowUp className="w-4 h-4" />
+            </Button>
+            <div></div>
+            
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleNavigation('left')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
+              onClick={() => handleNavigation('select')}
+            >
+              <Circle className="w-4 h-4 fill-current" />
+            </Button>
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleNavigation('right')}
+            >
+              <ArrowRight className="w-4 h-4" />
             </Button>
             
-            {/* Left, Select, Right */}
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={() => handleNavigation('left')}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 w-12 h-12"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              
-              <Button
-                onClick={() => handleNavigation('select')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white w-12 h-12 rounded-full"
-              >
-                <Circle className="w-6 h-6 fill-current" />
-              </Button>
-              
-              <Button
-                onClick={() => handleNavigation('right')}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 w-12 h-12"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            {/* Down Arrow */}
+            <div></div>
             <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
               onClick={() => handleNavigation('down')}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 w-12 h-12"
             >
-              <ArrowDown className="w-5 h-5" />
+              <ArrowDown className="w-4 h-4" />
             </Button>
+            <div></div>
           </div>
-
-          {/* Fire TV Action Buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            <Button
-              onClick={() => handleFireTVAction('home')}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <Button
-              onClick={() => handleFireTVAction('back')}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button
-              onClick={() => handleFireTVAction('menu')}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <Menu className="w-4 h-4 mr-2" />
-              Menu
-            </Button>
-          </div>
-
-          {/* Advanced Controls */}
-          {showAdvanced && (
-            <div className="space-y-3 pt-4 border-t border-white/10">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => handleFireTVAction('voice_search')}
-                  variant="outline"
-                  className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                >
-                  🎤 Voice
-                </Button>
-                <Button
-                  onClick={() => handleFireTVAction('apps')}
-                  variant="outline"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                >
-                  📱 Apps
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  onClick={() => handleFireTVAction('netflix')}
-                  variant="outline"
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs"
-                >
-                  Netflix
-                </Button>
-                <Button
-                  onClick={() => handleFireTVAction('prime')}
-                  variant="outline"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 text-xs"
-                >
-                  Prime
-                </Button>
-                <Button
-                  onClick={() => handleFireTVAction('youtube')}
-                  variant="outline"
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs"
-                >
-                  YouTube
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
-      </Card>
 
-      {/* Connection Status */}
-      <div className="text-center">
-        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-          <Smartphone className="w-3 h-3 mr-1" />
-          Connected to Fire TV
-        </Badge>
+        {/* Playback Controls */}
+        <div className="space-y-4">
+          <div className="flex justify-center gap-3">
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleSeek('backward', 30)}
+            >
+              <RotateCcw className="w-5 h-5" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleSeek('backward')}
+            >
+              <SkipBack className="w-5 h-5" />
+            </Button>
+            
+            <Button
+              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white w-16 h-16 rounded-full"
+              onClick={handlePlayPause}
+            >
+              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleSeek('forward')}
+            >
+              <SkipForward className="w-5 h-5" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+              onClick={() => handleSeek('forward', 30)}
+            >
+              <RotateCw className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Volume Control */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-white text-sm">Volume</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMute}
+              className="text-gray-400 hover:text-white"
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </Button>
+          </div>
+          <div className="px-2">
+            <Slider
+              value={isMuted ? [0] : volume}
+              onValueChange={handleVolumeChange}
+              max={100}
+              step={1}
+              className="w-full"
+              disabled={isMuted}
+            />
+          </div>
+          <div className="text-center text-sm text-gray-400">
+            {isMuted ? 'Muted' : `${volume[0]}%`}
+          </div>
+        </div>
+
+        {/* Voice and Search */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            onClick={() => handleSpecialButton('Voice Search')}
+          >
+            <Mic className="w-4 h-4 mr-2" />
+            Voice
+          </Button>
+          <Button
+            variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            onClick={() => handleSpecialButton('Search')}
+          >
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+        </div>
+
+        {/* Host Controls Info */}
+        {!isHost && (
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+            <p className="text-orange-400 text-sm text-center">
+              🔒 Remote control available - actions sync to all devices
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </Card>
   );
 };
