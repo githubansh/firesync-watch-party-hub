@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { useState } from 'react';
 import { RoomSharing } from '../RoomSharing';
 import { EnhancedChatSystem } from '../EnhancedChatSystem';
 import { FireTVRemoteControl } from '../FireTVRemoteControl';
+import { ChatMessage } from '@/types/chat';
 
 interface MobilePartyRoomProps {
   roomId: string;
@@ -35,7 +35,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     { id: '3', username: 'Mom', role: 'member', device_type: 'mobile', device_name: 'Android', is_connected: true },
   ];
 
-  const mockMessages = chatMessages.length > 0 ? chatMessages : [
+  const mockMessages: ChatMessage[] = chatMessages.length > 0 ? chatMessages : [
     {
       id: '1',
       room_id: roomId,

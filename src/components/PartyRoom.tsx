@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import { RoomSharing } from './RoomSharing';
 import { EnhancedChatSystem } from './EnhancedChatSystem';
 import { FireTVRemoteControl } from './FireTVRemoteControl';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { ChatMessage } from '@/types/chat';
 
 interface PartyRoomProps {
   roomCode: string;
@@ -50,7 +50,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
     { id: '3', username: 'Bob', role: 'member', device_type: 'firetv', device_name: 'Bedroom Fire TV', is_connected: true },
   ];
 
-  const mockMessages = chatMessages.length > 0 ? chatMessages : [
+  const mockMessages: ChatMessage[] = chatMessages.length > 0 ? chatMessages : [
     {
       id: '1',
       room_id: roomId,

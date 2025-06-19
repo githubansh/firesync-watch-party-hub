@@ -9,17 +9,7 @@ import { VoiceRecorder } from './VoiceRecorder';
 import { MessageCircle, Send, Mic, Image, Smile, Volume2, Download } from 'lucide-react';
 import { useChatManagement } from '@/hooks/useChatManagement';
 import { toast } from "@/hooks/use-toast";
-
-interface ChatMessage {
-  id: string;
-  room_id: string;
-  user_id: string;
-  username: string;
-  message: string;
-  message_type: 'text' | 'voice' | 'image' | 'reaction' | 'system';
-  created_at: string;
-  voice_duration?: number;
-}
+import { ChatMessage } from '@/types/chat';
 
 interface EnhancedChatSystemProps {
   roomId: string;

@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage } from '@/types/chat';
 
 interface SyncEvent {
   id: string;
@@ -20,16 +21,6 @@ interface Room {
   current_position: number;
   is_playing: boolean;
   current_content_url?: string;
-}
-
-interface ChatMessage {
-  id: string;
-  room_id: string;
-  user_id: string;
-  username: string;
-  message: string;
-  message_type: string;
-  created_at: string;
 }
 
 export const useRealtimeSync = (roomId: string | null) => {
@@ -117,7 +108,13 @@ export const useRealtimeSync = (roomId: string | null) => {
         },
         (payload) => {
           console.log('New chat message:', payload.new);
-          setChatMessages(prev => [...prev, payload.new as ChatMessage]);
+          const newMessage = payload.new as any;
+          // Ensure message_type is properly typed
+          const typedMessage: ChatMessage = {
+            ...newMessage,
+            message_type: newMessage.message_type as ChatMessage['message_type'] || 'text'
+          };
+          setChatMessages(prev => [...prev, typedMessage]);
         }
       )
       .subscribe();
@@ -142,7 +139,12 @@ export const useRealtimeSync = (roomId: string | null) => {
       }
       if (chatResult.data) {
         console.log('Chat messages data:', chatResult.data);
-        setChatMessages(chatResult.data);
+        // Ensure all messages have proper typing
+        const typedMessages: ChatMessage[] = chatResult.data.map(msg => ({
+          ...msg,
+          message_type: msg.message_type as ChatMessage['message_type'] || 'text'
+        }));
+        setChatMessages(typedMessages);
       }
     };
 
