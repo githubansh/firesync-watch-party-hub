@@ -61,46 +61,56 @@ export const FireTVApp = () => {
 
   if (currentView === 'auth') {
     return (
-      <AuthPage 
-        onBack={() => setCurrentView('home')}
-        onAuthenticated={() => setCurrentView('home')}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+        <AuthPage 
+          onBack={() => setCurrentView('home')}
+          onAuthenticated={() => setCurrentView('home')}
+        />
+      </div>
     );
   }
 
   if (currentView === 'create') {
     return (
-      <CreateRoom 
-        onRoomCreated={handleRoomCreated}
-        onBack={() => setCurrentView('home')}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+        <CreateRoom 
+          onRoomCreated={handleRoomCreated}
+          onBack={() => setCurrentView('home')}
+        />
+      </div>
     );
   }
 
   if (currentView === 'join') {
     return (
-      <JoinRoom 
-        onRoomJoined={handleRoomJoined}
-        onBack={() => setCurrentView('home')}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+        <JoinRoom 
+          onRoomJoined={handleRoomJoined}
+          onBack={() => setCurrentView('home')}
+        />
+      </div>
     );
   }
 
   if (currentView === 'room' && currentRoomId) {
     return (
-      <MobilePartyRoom 
-        roomId={currentRoomId}
-        onLeaveRoom={handleLeaveRoom}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+        <MobilePartyRoom 
+          roomId={currentRoomId}
+          onLeaveRoom={handleLeaveRoom}
+        />
+      </div>
     );
   }
 
   return (
-    <MobileHome 
-      user={user}
-      onCreateRoom={handleCreateRoom}
-      onJoinRoom={handleJoinRoom}
-      onSignOut={handleSignOut}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <MobileHome 
+        user={user}
+        onCreateRoom={handleCreateRoom}
+        onJoinRoom={handleJoinRoom}
+        onSignOut={handleSignOut}
+      />
+    </div>
   );
 };

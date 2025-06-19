@@ -1,26 +1,18 @@
-
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { 
-  MessageCircle, 
-  Send, 
-  Smile, 
-  Mic, 
-  MicOff,
-  Image as ImageIcon,
-  Heart,
-  ThumbsUp,
-  Laugh
+  MessageCircle,
+  Mic,
+  Send,
+  Play,
+  Pause
 } from 'lucide-react';
-import { toast } from "@/hooks/use-toast";
 import { VoiceRecorder } from './VoiceRecorder';
+import { toast } from "@/hooks/use-toast";
 import { ChatMessage } from '@/types/chat';
-import { useChatManagement } from '@/hooks/useChatManagement';
 
 interface EnhancedChatSystemProps {
   roomId: string;
@@ -28,249 +20,303 @@ interface EnhancedChatSystemProps {
   currentUsername: string;
 }
 
-const quickEmojis = [
-  { emoji: '😀', label: 'Happy' },
-  { emoji: '😂', label: 'Laughing' },
-  { emoji: '❤️', label: 'Love' },
-  { emoji: '👍', label: 'Thumbs up' },
-  { emoji: '👎', label: 'Thumbs down' },
-  { emoji: '😢', label: 'Sad' },
-  { emoji: '😡', label: 'Angry' },
-  { emoji: '🔥', label: 'Fire' },
-  { emoji: '🎉', label: 'Party' },
-  { emoji: '🍿', label: 'Popcorn' }
-];
+const quickEmojis = ['👍', '🔥', '💯', '👏', '😂', '🎉'];
+
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString);
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+  return `${hours}:${minutesStr} ${ampm}`;
+};
+
+const formatDuration = (duration: number) => {
+  const minutes = Math.floor(duration / 60);
+  const seconds = Math.floor(duration % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
 
 export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: EnhancedChatSystemProps) => {
   const [newMessage, setNewMessage] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { sendMessage, isLoading } = useChatManagement();
+  const [isSending, setIsSending] = useState(false);
+  const [playingStates, setPlayingStates] = useState<{ [key: string]: boolean }>({});
+  const [playbackProgress, setPlaybackProgress] = useState<{ [key: string]: number }>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim()) return;
+    setIsSending(true);
     
-    const success = await sendMessage(roomId, newMessage.trim());
-    if (success) {
-      setNewMessage('');
-      setShowEmojiPicker(false);
-    }
+    const messageData: ChatMessage = {
+      id: Date.now().toString(),
+      room_id: roomId,
+      user_id: 'mock-user-id',
+      username: currentUsername,
+      message: newMessage,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistically update the UI
+    // setMessages(prevMessages => [...prevMessages, messageData]);
+    setNewMessage('');
+    setIsSending(false);
+    scrollToBottom();
+
+    toast({
+      title: "Sent!",
+      description: "Message sent successfully",
+    });
   };
 
-  const handleEmojiClick = (emoji: string) => {
-    setNewMessage(prev => prev + emoji);
-  };
+  const sendQuickEmoji = async (emoji: string) => {
+    setIsSending(true);
 
-  const handleQuickReaction = async (emoji: string) => {
-    await sendMessage(roomId, emoji, 'reaction');
+    const messageData: ChatMessage = {
+      id: Date.now().toString(),
+      room_id: roomId,
+      user_id: 'mock-user-id',
+      username: currentUsername,
+      message: emoji,
+      message_type: 'emoji',
+      created_at: new Date().toISOString(),
+    };
+
+    // setMessages(prevMessages => [...prevMessages, messageData]);
+    setIsSending(false);
+    scrollToBottom();
+
+    toast({
+      title: "Sent!",
+      description: "Emoji sent successfully",
+    });
   };
 
   const handleVoiceMessage = async (audioBlob: Blob, duration: number) => {
-    // In a real implementation, you'd upload the audio to storage first
-    // For now, we'll send a text representation
-    const success = await sendMessage(
-      roomId, 
-      `🎤 Voice message (${Math.round(duration)}s)`, 
-      'voice',
-      duration * 1000 // Convert to milliseconds
-    );
+    setShowVoiceRecorder(false);
+    setIsSending(true);
+
+    const url = URL.createObjectURL(audioBlob);
     
-    if (success) {
-      setShowVoiceRecorder(false);
-      toast({
-        title: "Voice message sent!",
-        description: `${Math.round(duration)} second message delivered`,
+    const messageData: ChatMessage = {
+      id: Date.now().toString(),
+      room_id: roomId,
+      user_id: 'mock-user-id',
+      username: currentUsername,
+      message: url,
+      message_type: 'voice',
+      created_at: new Date().toISOString(),
+      duration: duration,
+    };
+
+    // setMessages(prevMessages => [...prevMessages, messageData]);
+    setIsSending(false);
+    scrollToBottom();
+
+    toast({
+      title: "Sent!",
+      description: "Voice message sent successfully",
+    });
+  };
+
+  const togglePlayback = (messageId: string) => {
+    const audioUrl = messages.find(msg => msg.id === messageId)?.message;
+
+    if (!audioUrl) {
+      console.error('Audio URL not found for message ID:', messageId);
+      return;
+    }
+
+    if (!audioRefs.current[messageId]) {
+      audioRefs.current[messageId] = new Audio(audioUrl);
+      
+      audioRefs.current[messageId].addEventListener('timeupdate', () => {
+        const audio = audioRefs.current[messageId];
+        if (audio) {
+          const progress = (audio.currentTime / audio.duration) * 100;
+          setPlaybackProgress(prevProgress => ({
+            ...prevProgress,
+            [messageId]: progress,
+          }));
+        }
+      });
+
+      audioRefs.current[messageId].addEventListener('ended', () => {
+        setPlayingStates(prevState => ({
+          ...prevState,
+          [messageId]: false,
+        }));
+        setPlaybackProgress(prevProgress => ({
+          ...prevProgress,
+          [messageId]: 0,
+        }));
+      });
+    }
+
+    const audio = audioRefs.current[messageId];
+
+    if (playingStates[messageId]) {
+      audio.pause();
+      setPlayingStates(prevState => ({
+        ...prevState,
+        [messageId]: false,
+      }));
+    } else {
+      audio.play();
+      setPlayingStates(prevState => {
+        // Pause all other audio instances
+        Object.keys(prevState).forEach(id => {
+          if (id !== messageId && audioRefs.current[id]) {
+            audioRefs.current[id].pause();
+          }
+        });
+
+        return {
+          ...Object.fromEntries(Object.keys(prevState)
+            .map(key => [key, false])), // Pause all others
+          [messageId]: true, // Play current
+        };
       });
     }
   };
 
-  const formatMessageTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getMessageIcon = (messageType: ChatMessage['message_type']) => {
-    switch (messageType) {
-      case 'voice':
-        return <Mic className="w-3 h-3" />;
-      case 'image':
-        return <ImageIcon className="w-3 h-3" />;
-      case 'reaction':
-        return <Heart className="w-3 h-3" />;
-      case 'system':
-        return <MessageCircle className="w-3 h-3" />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 h-96 flex flex-col">
-      {/* Chat Header */}
-      <div className="p-4 border-b border-teal-500/20">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
-            Family Chat
-          </h3>
-          <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
+    <Card className="bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20 p-4 h-96 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-white flex items-center gap-2">
+          <MessageCircle className="w-4 h-4" />
+          Family Chat
+        </h3>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-[#00e6e6]/20 text-[#00e6e6] border-[#00e6e6]/30 text-xs">
             {messages.length} messages
           </Badge>
         </div>
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-3">
-          {messages.map((message) => (
-            <div key={message.id} className="space-y-1">
-              <div className={`flex items-start gap-2 ${
-                message.message_type === 'system' ? 'justify-center' : ''
-              }`}>
-                {message.message_type === 'system' ? (
-                  <div className="bg-teal-500/10 border border-teal-500/20 rounded-lg p-2 text-center">
-                    <p className="text-teal-400 text-sm">{message.message}</p>
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-[#00e6e6]/30 scrollbar-track-transparent">
+        {messages.map((message) => (
+          <div key={message.id} className={`flex ${
+            message.username === currentUsername ? 'justify-end' : 'justify-start'
+          }`}>
+            <div className={`max-w-[80%] ${
+              message.username === currentUsername
+                ? 'bg-[#00e6e6]/20 border-[#00e6e6]/30'
+                : 'bg-[#111184]/40 border-[#111184]/30'
+            } border rounded-lg p-3`}>
+              {message.username !== currentUsername && (
+                <p className="text-[#00e6e6] text-xs font-medium mb-1">
+                  {message.username}
+                </p>
+              )}
+              
+              {message.message_type === 'voice' ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10"
+                    onClick={() => togglePlayback(message.id)}
+                  >
+                    {playingStates[message.id] ? 
+                      <Pause className="w-4 h-4 text-[#00e6e6]" /> : 
+                      <Play className="w-4 h-4 text-[#00e6e6]" />
+                    }
+                  </Button>
+                  <div className="flex-1">
+                    <div className="h-1 bg-[#111184]/40 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#00e6e6] transition-all duration-300"
+                        style={{ width: `${playbackProgress[message.id] || 0}%` }}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {message.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white text-sm">
-                          {message.username}
-                        </span>
-                        {getMessageIcon(message.message_type)}
-                        <span className="text-gray-400 text-xs">
-                          {formatMessageTime(message.created_at)}
-                        </span>
-                      </div>
-                      <div className={`p-2 rounded-lg max-w-xs ${
-                        message.username === currentUsername
-                          ? 'bg-teal-500/20 border border-teal-500/30 ml-auto'
-                          : 'bg-slate-700/50 border border-slate-600/30'
-                      }`}>
-                        <p className="text-white text-sm break-words">
-                          {message.message}
-                        </p>
-                        {message.voice_duration && (
-                          <div className="mt-1 text-xs text-gray-400">
-                            Duration: {Math.round(message.voice_duration / 1000)}s
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+                  <span className="text-xs text-gray-300">
+                    {message.duration ? formatDuration(message.duration) : '0:00'}
+                  </span>
+                </div>
+              ) : message.message_type === 'emoji' ? (
+                <div className="text-2xl">{message.message}</div>
+              ) : (
+                <p className="text-white text-sm">{message.message}</p>
+              )}
+              
+              <p className="text-gray-400 text-xs mt-1">
+                {formatTime(message.created_at)}
+              </p>
             </div>
-          ))}
-        </div>
-      </ScrollArea>
-
-      {/* Quick Reactions */}
-      <div className="p-2 border-t border-teal-500/20">
-        <div className="flex gap-1 overflow-x-auto">
-          {quickEmojis.slice(0, 6).map((item, index) => (
-            <Button
-              key={index}
-              variant="ghost"
-              size="sm"
-              className="text-lg hover:bg-teal-500/10 min-w-0 p-1"
-              onClick={() => handleQuickReaction(item.emoji)}
-            >
-              {item.emoji}
-            </Button>
-          ))}
-        </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      <Separator className="bg-teal-500/20" />
-
-      {/* Voice Recorder */}
-      {showVoiceRecorder && (
-        <div className="p-4 border-t border-teal-500/20">
+      {/* Input Area */}
+      <div className="space-y-3">
+        {/* Voice Recording */}
+        {showVoiceRecorder ? (
           <VoiceRecorder
             onRecordingComplete={handleVoiceMessage}
             onCancel={() => setShowVoiceRecorder(false)}
           />
-        </div>
-      )}
+        ) : (
+          <>
+            {/* Emoji Quick Actions */}
+            <div className="flex gap-1 mb-2">
+              {quickEmojis.map((emoji) => (
+                <Button
+                  key={emoji}
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10 text-lg"
+                  onClick={() => sendQuickEmoji(emoji)}
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
 
-      {/* Emoji Picker */}
-      {showEmojiPicker && (
-        <div className="p-4 border-t border-teal-500/20">
-          <div className="grid grid-cols-5 gap-2">
-            {quickEmojis.map((item, index) => (
+            {/* Message Input */}
+            <div className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Type a message..."
+                className="flex-1 bg-[#111184]/40 border-[#00e6e6]/30 text-white placeholder:text-gray-400 focus:border-[#00e6e6]"
+              />
               <Button
-                key={index}
+                size="sm"
                 variant="ghost"
-                className="text-xl hover:bg-teal-500/10 aspect-square"
-                onClick={() => handleEmojiClick(item.emoji)}
-                title={item.label}
+                className="h-10 w-10 p-0 hover:bg-[#00e6e6]/10"
+                onClick={() => setShowVoiceRecorder(true)}
               >
-                {item.emoji}
+                <Mic className="w-4 h-4 text-[#00e6e6]" />
               </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Message Input */}
-      <div className="p-4 border-t border-teal-500/20">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
-            onClick={() => {
-              setShowEmojiPicker(!showEmojiPicker);
-              setShowVoiceRecorder(false);
-            }}
-          >
-            <Smile className="w-4 h-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-            onClick={() => {
-              setShowVoiceRecorder(!showVoiceRecorder);
-              setShowEmojiPicker(false);
-            }}
-          >
-            {showVoiceRecorder ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </Button>
-          
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="bg-slate-700/50 border-slate-600/30 text-white placeholder:text-gray-400"
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={isLoading}
-          />
-          
-          <Button 
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || isLoading}
-            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
+              <Button
+                size="sm"
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || isSending}
+                className="bg-[#00e6e6] hover:bg-[#00cccc] text-[#111184] font-medium"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

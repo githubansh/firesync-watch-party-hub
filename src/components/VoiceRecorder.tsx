@@ -130,10 +130,10 @@ export const VoiceRecorder = ({
   };
 
   return (
-    <div className="bg-slate-700/50 rounded-lg p-4 space-y-4">
+    <div className="bg-[#222299]/50 backdrop-blur-sm border border-[#00e6e6]/30 rounded-lg p-4 space-y-4">
       <div className="text-center">
         <h4 className="font-semibold text-white mb-2">Voice Message</h4>
-        <div className="text-2xl font-mono text-teal-400">
+        <div className="text-2xl font-mono text-[#00e6e6]">
           {formatTime(recordingTime)}
         </div>
         <Progress 
@@ -169,7 +169,7 @@ export const VoiceRecorder = ({
           <Button
             variant="outline"
             onClick={isPlaying ? pausePlayback : playRecording}
-            className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
+            className="border-[#00e6e6]/30 text-[#00e6e6] hover:bg-[#00e6e6]/10 bg-[#111184]/40"
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </Button>
@@ -177,14 +177,14 @@ export const VoiceRecorder = ({
           <Button
             variant="outline"
             onClick={deleteRecording}
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+            className="border-red-500/30 text-red-400 hover:bg-red-500/10 bg-[#111184]/40"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
           
           <Button
             onClick={sendRecording}
-            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
+            className="bg-gradient-to-r from-[#00e6e6] to-[#00cccc] hover:from-[#00cccc] hover:to-[#009999] text-[#111184] font-medium"
           >
             <Send className="w-4 h-4" />
           </Button>
@@ -196,7 +196,7 @@ export const VoiceRecorder = ({
         <Button
           variant="ghost"
           onClick={onCancel}
-          className="text-gray-400 hover:text-white"
+          className="text-gray-300 hover:text-white hover:bg-[#00e6e6]/10"
         >
           Cancel
         </Button>
