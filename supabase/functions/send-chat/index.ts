@@ -34,9 +34,9 @@ serve(async (req) => {
       )
     }
 
-    const { roomId, message, messageType = 'text' } = await req.json()
+    const { roomId, message, messageType = 'text', voiceDuration } = await req.json()
 
-    console.log('Chat message:', { roomId, message, messageType, userId: user.id })
+    console.log('Chat message:', { roomId, message, messageType, voiceDuration, userId: user.id })
 
     // Verify user is in the room and get their username
     const { data: participant } = await supabaseClient
@@ -53,16 +53,24 @@ serve(async (req) => {
       )
     }
 
+    // Prepare the chat message data
+    const chatData: any = {
+      room_id: roomId,
+      user_id: user.id,
+      username: participant.username,
+      message,
+      message_type: messageType,
+    }
+
+    // Add voice duration if it's a voice message
+    if (messageType === 'voice' && voiceDuration) {
+      chatData.voice_duration = voiceDuration
+    }
+
     // Insert chat message
     const { error: chatError } = await supabaseClient
       .from('chat_messages')
-      .insert({
-        room_id: roomId,
-        user_id: user.id,
-        username: participant.username,
-        message,
-        message_type: messageType,
-      })
+      .insert(chatData)
 
     if (chatError) {
       console.error('Chat message error:', chatError)

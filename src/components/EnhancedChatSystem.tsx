@@ -56,7 +56,7 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
             type: audioBlob.type
           });
           
-          await sendMessage(roomId, voiceData, 'voice');
+          await sendMessage(roomId, voiceData, 'voice', duration);
         }
       };
       reader.readAsDataURL(audioBlob);
@@ -204,6 +204,7 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
                 onClick={() => handleSendReaction(emoji)}
                 variant="ghost"
                 className="text-2xl p-2 hover:bg-white/10"
+                disabled={isLoading}
               >
                 {emoji}
               </Button>
@@ -249,7 +250,7 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
             onChange={(e) => setTextMessage(e.target.value)}
             placeholder="Type a message..."
             className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-            onKeyPress={(e) => e.key === 'Enter' && handleSendTextMessage()}
+            onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendTextMessage()}
           />
           <Button
             onClick={handleSendTextMessage}
