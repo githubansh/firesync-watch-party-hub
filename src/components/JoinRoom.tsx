@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Smartphone, Users, Wifi, Tv, CheckCircle } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { useRoomManagement } from '@/hooks/useRoomManagement';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JoinRoomProps {
   onRoomJoined: (roomId: string) => void;
@@ -53,6 +53,19 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
         deviceType: 'mobile',
         deviceName: 'Mobile Device',
       });
+
+      // Store username and user ID in localStorage for later retrieval
+      localStorage.setItem(`room_${room.id}_username`, username);
+      
+      // Get current user ID (authenticated or anonymous)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        localStorage.setItem(`room_${room.id}_userid`, user.id);
+      } else {
+        // For anonymous users, we'll generate a UUID and store it
+        const anonymousUserId = crypto.randomUUID();
+        localStorage.setItem(`room_${room.id}_userid`, anonymousUserId);
+      }
 
       onRoomJoined(room.id);
     } catch (error) {

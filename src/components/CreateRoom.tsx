@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Tv, Users, Copy, CheckCircle, Share2 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { useRoomManagement } from '@/hooks/useRoomManagement';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateRoomProps {
   onRoomCreated: (roomId: string) => void;
@@ -34,6 +34,21 @@ export const CreateRoom = ({ onRoomCreated, onBack }: CreateRoomProps) => {
         allowRemoteControl,
         autoDiscovery,
       });
+
+      // Store username and user ID in localStorage for later retrieval
+      // For room creators, we'll use a default host username
+      const hostUsername = 'Host';
+      localStorage.setItem(`room_${room.id}_username`, hostUsername);
+      
+      // Get current user ID (authenticated or anonymous)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        localStorage.setItem(`room_${room.id}_userid`, user.id);
+      } else {
+        // For anonymous users, we'll generate a UUID and store it
+        const anonymousUserId = crypto.randomUUID();
+        localStorage.setItem(`room_${room.id}_userid`, anonymousUserId);
+      }
 
       setRoomCode(room.code);
       setRoomId(room.id);

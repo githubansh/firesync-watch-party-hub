@@ -1,14 +1,14 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Share2, MessageCircle, Tv } from 'lucide-react';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RoomSharing } from '../RoomSharing';
 import { EnhancedChatSystem } from '../EnhancedChatSystem';
 import { FireTVRemoteControl } from '../FireTVRemoteControl';
 import { ChatMessage } from '@/types/chat';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MobilePartyRoomProps {
   roomId: string;
@@ -18,7 +18,55 @@ interface MobilePartyRoomProps {
 export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) => {
   const { room, participants, chatMessages, sendSyncEvent } = useRealtimeSync(roomId);
   const [activeTab, setActiveTab] = useState<'remote' | 'chat' | 'share'>('remote');
-  const [currentUsername] = useState('You');
+  const [currentUsername, setCurrentUsername] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+
+  // Get current user information
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        // First try to get authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Find the participant entry for this user
+          const currentParticipant = participants.find(p => p.user_id === user.id);
+          if (currentParticipant) {
+            setCurrentUsername(currentParticipant.username);
+            setCurrentUserId(user.id);
+            return;
+          }
+        }
+        
+        // If no authenticated user or participant not found, try to get from localStorage
+        const storedUsername = localStorage.getItem(`room_${roomId}_username`);
+        const storedUserId = localStorage.getItem(`room_${roomId}_userid`);
+        
+        if (storedUsername && storedUserId) {
+          setCurrentUsername(storedUsername);
+          setCurrentUserId(storedUserId);
+          return;
+        }
+        
+        // Fallback: try to find a participant that might be the current user
+        // This is a heuristic - we'll assume the first mobile participant might be the current user
+        const mobileParticipant = participants.find(p => p.device_type === 'mobile');
+        if (mobileParticipant) {
+          setCurrentUsername(mobileParticipant.username);
+          setCurrentUserId(mobileParticipant.user_id);
+          // Store for future reference
+          localStorage.setItem(`room_${roomId}_username`, mobileParticipant.username);
+          localStorage.setItem(`room_${roomId}_userid`, mobileParticipant.user_id);
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error);
+      }
+    };
+
+    if (participants.length > 0) {
+      getCurrentUser();
+    }
+  }, [participants, roomId]);
 
   // Mock data for demonstration
   const mockRoom = room || {
@@ -28,6 +76,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     status: 'active',
     is_playing: false,
     current_position: 0,
+    host_id: currentUserId || 'mock-host-id',
   };
 
   const mockParticipants = participants.length > 0 ? participants : [
@@ -48,8 +97,24 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     }
   ];
 
-  const currentUser = mockParticipants.find(p => p.username === currentUsername);
-  const isHost = currentUser?.role === 'host';
+  // Find current user in participants
+  const currentUser = mockParticipants.find(p => 
+    p.user_id === currentUserId || p.username === currentUsername
+  );
+  
+  // Determine if current user is host
+  const isHost = currentUser?.role === 'host' || 
+                 (mockRoom.host_id && mockRoom.host_id === currentUserId);
+
+  // Debug logging
+  console.log('Current user detection:', {
+    currentUsername,
+    currentUserId,
+    currentUser,
+    isHost,
+    mockRoomHostId: mockRoom.host_id,
+    participants: mockParticipants.map(p => ({ username: p.username, user_id: p.user_id, role: p.role }))
+  });
 
   const handleStartParty = () => {
     if (isHost && mockRoom.status === 'waiting') {
@@ -85,6 +150,11 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           <div className="text-center">
             <h1 className="text-white font-bold">{mockRoom.name}</h1>
             <p className="text-gray-400 text-sm">Room {mockRoom.code}</p>
+            {isHost && (
+              <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-xs mt-1">
+                👑 You are the Host
+              </Badge>
+            )}
           </div>
           <Badge className={
             mockRoom.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
@@ -157,10 +227,11 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
                   participant.role === 'host'
                     ? 'bg-teal-500/20 text-teal-400 border-teal-500/30'
                     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                }`}
+                } ${(participant.user_id === currentUserId || participant.username === currentUsername) ? 'ring-2 ring-yellow-400' : ''}`}
               >
                 {participant.username}
                 {participant.role === 'host' && ' 👑'}
+                {(participant.user_id === currentUserId || participant.username === currentUsername) && ' (You)'}
               </Badge>
             ))}
           </div>
@@ -181,7 +252,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           <EnhancedChatSystem
             roomId={roomId}
             messages={mockMessages}
-            currentUsername={currentUsername}
+            currentUsername={currentUsername || 'You'}
           />
         )}
 

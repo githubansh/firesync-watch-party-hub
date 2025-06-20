@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -174,59 +173,65 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-[#00e6e6]/30 scrollbar-track-transparent">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${
-            message.username === currentUsername ? 'justify-end' : 'justify-start'
-          }`}>
-            <div className={`max-w-[80%] ${
-              message.username === currentUsername
-                ? 'bg-[#00e6e6]/20 border-[#00e6e6]/30'
-                : 'bg-[#111184]/40 border-[#111184]/30'
-            } border rounded-lg p-3`}>
-              {message.username !== currentUsername && (
-                <p className="text-[#00e6e6] text-xs font-medium mb-1">
-                  {message.username}
-                </p>
-              )}
-              
-              {message.message_type === 'voice' ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10"
-                    onClick={() => togglePlayback(message.id)}
-                  >
-                    {playingStates[message.id] ? 
-                      <Pause className="w-4 h-4 text-[#00e6e6]" /> : 
-                      <Play className="w-4 h-4 text-[#00e6e6]" />
-                    }
-                  </Button>
-                  <div className="flex-1">
-                    <div className="h-1 bg-[#111184]/40 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#00e6e6] transition-all duration-300"
-                        style={{ width: `${playbackProgress[message.id] || 0}%` }}
-                      />
+        {messages.map((message) => {
+          const isCurrentUser = message.username === currentUsername || 
+                               message.user_id === currentUsername ||
+                               message.username.toLowerCase() === currentUsername.toLowerCase();
+          
+          return (
+            <div key={message.id} className={`flex ${
+              isCurrentUser ? 'justify-end' : 'justify-start'
+            }`}>
+              <div className={`max-w-[80%] ${
+                isCurrentUser
+                  ? 'bg-[#00e6e6]/20 border-[#00e6e6]/30'
+                  : 'bg-[#111184]/40 border-[#111184]/30'
+              } border rounded-lg p-3`}>
+                {!isCurrentUser && (
+                  <p className="text-[#00e6e6] text-xs font-medium mb-1">
+                    {message.username}
+                  </p>
+                )}
+                
+                {message.message_type === 'voice' ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10"
+                      onClick={() => togglePlayback(message.id)}
+                    >
+                      {playingStates[message.id] ? 
+                        <Pause className="w-4 h-4 text-[#00e6e6]" /> : 
+                        <Play className="w-4 h-4 text-[#00e6e6]" />
+                      }
+                    </Button>
+                    <div className="flex-1">
+                      <div className="h-1 bg-[#111184]/40 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#00e6e6] transition-all duration-300"
+                          style={{ width: `${playbackProgress[message.id] || 0}%` }}
+                        />
+                      </div>
                     </div>
+                    <span className="text-xs text-gray-300">
+                      {message.voice_duration ? formatDuration(message.voice_duration) : 
+                       message.duration ? formatDuration(message.duration) : '0:00'}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-300">
-                    {message.voice_duration ? formatDuration(message.voice_duration) : 
-                     message.duration ? formatDuration(message.duration) : '0:00'}
-                  </span>
-                </div>
-              ) : message.message_type === 'emoji' ? (
-                <div className="text-2xl">{message.message}</div>
-              ) : (
-                <p className="text-white text-sm">{message.message}</p>
-              )}
-              
-              <p className="text-gray-400 text-xs mt-1">
-                {formatTime(message.created_at)}
-              </p>
+                ) : message.message_type === 'emoji' ? (
+                  <div className="text-2xl">{message.message}</div>
+                ) : (
+                  <p className="text-white text-sm">{message.message}</p>
+                )}
+                
+                <p className="text-gray-400 text-xs mt-1">
+                  {formatTime(message.created_at)}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

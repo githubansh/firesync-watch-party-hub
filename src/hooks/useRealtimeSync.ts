@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -21,6 +20,7 @@ interface Room {
   current_position: number;
   is_playing: boolean;
   current_content_url?: string;
+  host_id: string;
 }
 
 export const useRealtimeSync = (roomId: string | null) => {
@@ -31,6 +31,36 @@ export const useRealtimeSync = (roomId: string | null) => {
 
   useEffect(() => {
     if (!roomId) return;
+
+    // Heartbeat interval to keep connection alive (especially for Firefox)
+    const heartbeatInterval = setInterval(() => {
+      try {
+        // Send a ping to keep the connection alive
+        supabase.channel('heartbeat').send({
+          type: 'broadcast',
+          event: 'ping',
+          payload: { timestamp: Date.now(), roomId }
+        });
+        
+        // Also send a presence update to keep the connection active
+        supabase.channel('presence').track({
+          user_id: 'heartbeat',
+          online_at: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.warn('Heartbeat failed:', error);
+      }
+    }, 25000); // Send heartbeat every 25 seconds (more frequent for Firefox)
+
+    // Additional connection keep-alive for Firefox
+    const keepAliveInterval = setInterval(() => {
+      try {
+        // Make a simple query to keep the connection active
+        supabase.from('rooms').select('id').eq('id', roomId).limit(1);
+      } catch (error) {
+        console.warn('Keep-alive query failed:', error);
+      }
+    }, 60000); // Every minute
 
     // Subscribe to room changes
     const roomChannel = supabase
@@ -151,6 +181,8 @@ export const useRealtimeSync = (roomId: string | null) => {
     fetchInitialData();
 
     return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(keepAliveInterval);
       supabase.removeChannel(roomChannel);
       supabase.removeChannel(participantChannel);
       supabase.removeChannel(syncChannel);
