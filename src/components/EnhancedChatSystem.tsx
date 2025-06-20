@@ -119,7 +119,8 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
       message: url,
       message_type: 'voice',
       created_at: new Date().toISOString(),
-      duration: duration,
+      voice_duration: duration,
+      duration: duration, // For backward compatibility
     };
 
     // setMessages(prevMessages => [...prevMessages, messageData]);
@@ -246,7 +247,8 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
                     </div>
                   </div>
                   <span className="text-xs text-gray-300">
-                    {message.duration ? formatDuration(message.duration) : '0:00'}
+                    {message.voice_duration ? formatDuration(message.voice_duration) : 
+                     message.duration ? formatDuration(message.duration) : '0:00'}
                   </span>
                 </div>
               ) : message.message_type === 'emoji' ? (
