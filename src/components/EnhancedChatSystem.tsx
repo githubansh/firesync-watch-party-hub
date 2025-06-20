@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import {
 import { VoiceRecorder } from './VoiceRecorder';
 import { toast } from "@/hooks/use-toast";
 import { ChatMessage } from '@/types/chat';
+import { useChatManagement } from '@/hooks/useChatManagement';
 
 interface EnhancedChatSystemProps {
   roomId: string;
@@ -42,11 +44,12 @@ const formatDuration = (duration: number) => {
 export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: EnhancedChatSystemProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [playingStates, setPlayingStates] = useState<{ [key: string]: boolean }>({});
   const [playbackProgress, setPlaybackProgress] = useState<{ [key: string]: number }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+  
+  const { sendMessage, isLoading } = useChatManagement();
 
   useEffect(() => {
     scrollToBottom();
@@ -57,80 +60,41 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-    setIsSending(true);
+    if (!newMessage.trim() || isLoading) return;
     
-    const messageData: ChatMessage = {
-      id: Date.now().toString(),
-      room_id: roomId,
-      user_id: 'mock-user-id',
-      username: currentUsername,
-      message: newMessage,
-      message_type: 'text',
-      created_at: new Date().toISOString(),
-    };
-
-    // Optimistically update the UI
-    // setMessages(prevMessages => [...prevMessages, messageData]);
-    setNewMessage('');
-    setIsSending(false);
-    scrollToBottom();
-
-    toast({
-      title: "Sent!",
-      description: "Message sent successfully",
-    });
+    console.log('Sending text message:', newMessage);
+    const success = await sendMessage(roomId, newMessage, 'text');
+    
+    if (success) {
+      setNewMessage('');
+      scrollToBottom();
+    }
   };
 
   const sendQuickEmoji = async (emoji: string) => {
-    setIsSending(true);
-
-    const messageData: ChatMessage = {
-      id: Date.now().toString(),
-      room_id: roomId,
-      user_id: 'mock-user-id',
-      username: currentUsername,
-      message: emoji,
-      message_type: 'emoji',
-      created_at: new Date().toISOString(),
-    };
-
-    // setMessages(prevMessages => [...prevMessages, messageData]);
-    setIsSending(false);
-    scrollToBottom();
-
-    toast({
-      title: "Sent!",
-      description: "Emoji sent successfully",
-    });
+    if (isLoading) return;
+    
+    console.log('Sending emoji:', emoji);
+    const success = await sendMessage(roomId, emoji, 'emoji');
+    
+    if (success) {
+      scrollToBottom();
+    }
   };
 
   const handleVoiceMessage = async (audioBlob: Blob, duration: number) => {
     setShowVoiceRecorder(false);
-    setIsSending(true);
+    
+    if (isLoading) return;
 
     const url = URL.createObjectURL(audioBlob);
+    console.log('Sending voice message with duration:', duration);
     
-    const messageData: ChatMessage = {
-      id: Date.now().toString(),
-      room_id: roomId,
-      user_id: 'mock-user-id',
-      username: currentUsername,
-      message: url,
-      message_type: 'voice',
-      created_at: new Date().toISOString(),
-      voice_duration: duration,
-      duration: duration, // For backward compatibility
-    };
-
-    // setMessages(prevMessages => [...prevMessages, messageData]);
-    setIsSending(false);
-    scrollToBottom();
-
-    toast({
-      title: "Sent!",
-      description: "Voice message sent successfully",
-    });
+    const success = await sendMessage(roomId, url, 'voice', duration);
+    
+    if (success) {
+      scrollToBottom();
+    }
   };
 
   const togglePlayback = (messageId: string) => {
@@ -285,6 +249,7 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
                   variant="ghost"
                   className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10 text-lg"
                   onClick={() => sendQuickEmoji(emoji)}
+                  disabled={isLoading}
                 >
                   {emoji}
                 </Button>
@@ -299,19 +264,21 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Type a message..."
                 className="flex-1 bg-[#111184]/40 border-[#00e6e6]/30 text-white placeholder:text-gray-400 focus:border-[#00e6e6]"
+                disabled={isLoading}
               />
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-10 w-10 p-0 hover:bg-[#00e6e6]/10"
                 onClick={() => setShowVoiceRecorder(true)}
+                disabled={isLoading}
               >
                 <Mic className="w-4 h-4 text-[#00e6e6]" />
               </Button>
               <Button
                 size="sm"
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSending}
+                disabled={!newMessage.trim() || isLoading}
                 className="bg-[#00e6e6] hover:bg-[#00cccc] text-[#111184] font-medium"
               >
                 <Send className="w-4 h-4" />
