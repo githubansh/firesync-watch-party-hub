@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 export const useChatManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async (roomId: string, message: string, messageType: 'text' | 'voice' | 'reaction' | 'image' | 'system' = 'text', voiceDuration?: number) => {
+  const sendMessage = async (roomId: string, message: string, messageType: 'text' | 'voice' | 'reaction' | 'image' | 'system' | 'emoji' = 'text', voiceDuration?: number) => {
     setIsLoading(true);
     try {
       console.log('Sending chat message:', { roomId, message, messageType, voiceDuration });
