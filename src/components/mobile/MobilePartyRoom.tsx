@@ -3,12 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Share2, MessageCircle, Tv } from 'lucide-react';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RoomSharing } from '../RoomSharing';
 import { EnhancedChatSystem } from '../EnhancedChatSystem';
 import { FireTVRemoteControl } from '../FireTVRemoteControl';
 import { ChatMessage } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from "@/components/ui/use-toast";
 
 interface MobilePartyRoomProps {
   roomId: string;
@@ -20,6 +21,8 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
   const [activeTab, setActiveTab] = useState<'remote' | 'chat' | 'share'>('remote');
   const [currentUsername, setCurrentUsername] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const { toast } = useToast();
+  const chatMessagesRef = useRef<ChatMessage[]>([]);
 
   // Get current user information
   useEffect(() => {
@@ -68,13 +71,30 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     }
   }, [participants, roomId]);
 
+  useEffect(() => {
+    if (chatMessages.length > chatMessagesRef.current.length) {
+      const newMessage = chatMessages[chatMessages.length - 1];
+      if (activeTab !== 'chat' && newMessage.user_id !== currentUserId) {
+        toast({
+          title: `New Message from ${newMessage.username}`,
+          description: newMessage.message_type === 'text' ? newMessage.message : `Sent a ${newMessage.message_type}`,
+        });
+      }
+    }
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages, activeTab, currentUserId, toast]);
+
   // Auto-leave when party is ended
   useEffect(() => {
     if (room?.status === 'ended') {
       console.log('Party ended, leaving room automatically');
+      toast({
+        title: 'Party Ended',
+        description: 'The host has ended the watch party.',
+      });
       onLeaveRoom();
     }
-  }, [room?.status, onLeaveRoom]);
+  }, [room?.status, onLeaveRoom, toast]);
 
   // Mock data for demonstration
   const mockRoom = room || {
