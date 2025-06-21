@@ -7,6 +7,7 @@ import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Users, MessageC
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useChatManagement } from '@/hooks/useChatManagement';
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MobilePartyRoomProps {
   roomId: string;
@@ -14,13 +15,22 @@ interface MobilePartyRoomProps {
 }
 
 export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) => {
-  const { room, participants, syncEvents, chatMessages, sendSyncEvent, leaveRoom, endParty } = useRealtimeSync(roomId);
+  const { room, participants, chatMessages, sendSyncEvent, leaveRoom, endParty } = useRealtimeSync(roomId);
   const { sendMessage, isLoading: chatLoading } = useChatManagement();
   const [chatMessage, setChatMessage] = useState('');
   const [showChat, setShowChat] = useState(false);
 
-  const currentUser = participants.find(p => p.user_id === participants[0]?.user_id);
-  const isHost = currentUser?.role === 'host';
+  // Correctly identify the current user and host status
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || localStorage.getItem(`room_${roomId}_userid`));
+    };
+    getUserId();
+  }, [roomId]);
+
+  const isHost = room?.host_id === currentUserId;
 
   // Auto-leave when party is ended
   useEffect(() => {
@@ -207,25 +217,25 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         )}
 
         {/* Participants */}
-        <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
+        <Card className="bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-blue-400" />
+            <Users className="w-5 h-5 text-[#00e6e6]" />
             <span className="font-semibold text-white">Participants ({participants.length})</span>
           </div>
           <div className="space-y-2">
             {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center justify-between">
+              <div key={participant.user_id || participant.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full" />
+                  <div className={`w-2 h-2 rounded-full ${participant.online_at ? 'bg-green-400' : 'bg-gray-500'}`} />
                   <span className="text-white text-sm">{participant.username}</span>
-                  {participant.role === 'host' && (
+                  {room?.host_id === participant.user_id && (
                     <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
                       Host
                     </Badge>
                   )}
                 </div>
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
-                  {participant.device_type}
+                <Badge className="bg-[#00e6e6]/20 text-[#00e6e6] border-[#00e6e6]/30 text-xs">
+                  {participant.device_type || 'mobile'}
                 </Badge>
               </div>
             ))}
@@ -280,14 +290,14 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         )}
 
         {/* Current Status */}
-        <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-4">
+        <Card className="bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20 p-4">
           <h3 className="font-semibold text-white mb-3">Playback Status</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-400">Status:</span>
               <Badge className={room.is_playing ? 
-                "bg-green-500/20 text-green-400 border-green-500/30" : 
-                "bg-red-500/20 text-red-400 border-red-500/30"
+                "bg-green-500/20 text-green-400" : 
+                "bg-red-500/20 text-red-400"
               }>
                 {room.is_playing ? 'Playing' : 'Paused'}
               </Badge>
@@ -311,7 +321,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         {/* Chat Button */}
         <Button 
           onClick={() => setShowChat(true)}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+          className="w-full h-14 text-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
         >
           <MessageCircle className="w-5 h-5 mr-2" />
           Open Chat ({chatMessages.length})
