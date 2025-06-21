@@ -38,25 +38,25 @@
   }
 
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 210 40% 98%;
-    --card: 220 25% 15%;
-    --card-foreground: 210 40% 98%;
-    --popover: 220 25% 15%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 170 80% 45%;
-    --primary-foreground: 220 25% 10%;
-    --secondary: 220 25% 20%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 220 25% 20%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 170 80% 45%;
-    --accent-foreground: 220 25% 10%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 173 3% 12%; /* #1F2120 */
+    --foreground: 40 33% 99%; /* #FDFBFA */
+    --card: 190 65% 15%; /* #13363C */
+    --card-foreground: 40 33% 99%; /* #FDFBFA */
+    --popover: 190 65% 15%; /* #13363C */
+    --popover-foreground: 40 33% 99%; /* #FDFBFA */
+    --primary: 185 58% 48%; /* #33B9C5 */
+    --primary-foreground: 190 65% 10%; /* Darker for contrast on primary */
+    --secondary: 190 65% 20%; /* Slightly lighter than card */
+    --secondary-foreground: 40 33% 99%; /* #FDFBFA */
+    --muted: 190 65% 15%; /* #13363C */
+    --muted-foreground: 40 33% 80%; /* Slightly dimmer white for muted text */
+    --accent: 185 58% 48%; /* #33B9C5 */
+    --accent-foreground: 190 65% 10%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 220 25% 25%;
-    --input: 220 25% 25%;
-    --ring: 170 80% 55%;
+    --border: 190 65% 20%; /* Same as secondary */
+    --input: 190 65% 20%; /* Same as secondary */
+    --ring: 185 58% 58%; /* Lighter primary for ring */
     --sidebar-background: 222 51% 13%;
     --sidebar-foreground: 210 40% 90%;
     --sidebar-primary: 180 100% 45%;
@@ -77,7 +77,8 @@
     @apply bg-background text-foreground;
     min-height: 100vh;
     background-color: hsl(var(--background));
-    background-image: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    /* New gradient using the palette */
+    background-image: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--card)) 100%);
     background-attachment: fixed;
   }
 }
