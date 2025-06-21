@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { 
   Tv,
   ChevronUp,
@@ -76,19 +77,55 @@ export const FireTVRemoteControl = ({
   const handleVolumeAction = (action: string) => {
     console.log(`Volume action: ${action}`);
 
+    let newVolume = volume;
+    let newMuted = isMuted;
+
     switch (action) {
       case 'up':
-        setVolume(prev => Math.min(prev + 10, 100));
+        newVolume = Math.min(volume + 10, 100);
+        newMuted = false;
         break;
       case 'down':
-        setVolume(prev => Math.max(prev - 10, 0));
+        newVolume = Math.max(volume - 10, 0);
+        newMuted = false;
         break;
       case 'mute':
-        setIsMuted(prev => !prev);
+        newMuted = !isMuted;
         break;
+      case 'set':
+        // This will be called with a specific volume value
+        return;
       default:
         console.warn(`Unsupported volume action: ${action}`);
+        return;
     }
+
+    // Update local state
+    setVolume(newVolume);
+    setIsMuted(newMuted);
+
+    // Send volume sync event to all devices
+    onSendSyncEvent('volume_change', {
+      volume: newVolume,
+      isMuted: newMuted,
+      timestamp: Date.now()
+    });
+
+    setLastActionTime(new Date());
+  };
+
+  const handleVolumeSet = (newVolume: number) => {
+    console.log(`Setting volume to: ${newVolume}`);
+    
+    setVolume(newVolume);
+    setIsMuted(false);
+
+    // Send volume sync event to all devices
+    onSendSyncEvent('volume_change', {
+      volume: newVolume,
+      isMuted: false,
+      timestamp: Date.now()
+    });
 
     setLastActionTime(new Date());
   };
@@ -240,12 +277,19 @@ export const FireTVRemoteControl = ({
               onClick={() => handleVolumeAction('up')}
               className="bg-[#111184]/60 hover:bg-[#111184]/80 text-[#00e6e6] border border-[#00e6e6]/30 w-12 h-12"
             >
-              <VolumeX className="w-4 h-4 rotate-180" />
+              <Volume2 className="w-4 h-4" />
             </Button>
             
-            <div className="text-center">
-              <p className="text-gray-300 text-sm">Volume</p>
-              <p className="text-[#00e6e6] font-mono">{volume}%</p>
+            <div className="text-center w-full px-2">
+              <p className="text-gray-300 text-sm mb-2">Volume</p>
+              <Slider
+                value={[volume]}
+                onValueChange={(value) => handleVolumeSet(value[0])}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+              <p className="text-[#00e6e6] font-mono text-sm mt-1">{volume}%</p>
             </div>
             
             <Button

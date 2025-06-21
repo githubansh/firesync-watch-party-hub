@@ -1,5 +1,4 @@
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Mic, Square, Play, Pause, Trash2, Send } from 'lucide-react';
@@ -26,29 +25,91 @@ export const VoiceRecorder = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // Request microphone access with better error handling
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      streamRef.current = stream;
+      
+      // Use appropriate MIME type for better compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : 'audio/mp4';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        chunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setRecordedBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
+        try {
+          const blob = new Blob(chunksRef.current, { type: mimeType });
+          setRecordedBlob(blob);
+          const url = URL.createObjectURL(blob);
+          setAudioUrl(url);
+          
+          // Stop all tracks to release microphone
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+          }
+        } catch (error) {
+          console.error('Error processing recorded audio:', error);
+          toast({
+            title: "Recording Error",
+            description: "Failed to process recorded audio",
+            variant: "destructive",
+          });
+        }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        toast({
+          title: "Recording Error",
+          description: "Failed to record audio",
+          variant: "destructive",
+        });
+        stopRecording();
+      };
+
+      mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
       setRecordingTime(0);
 
@@ -65,9 +126,21 @@ export const VoiceRecorder = ({
 
     } catch (error) {
       console.error('Error accessing microphone:', error);
+      let errorMessage = "Could not access microphone. Please check permissions.";
+      
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = "Microphone access denied. Please allow microphone access and try again.";
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = "No microphone found. Please connect a microphone and try again.";
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = "Audio recording is not supported in this browser.";
+        }
+      }
+      
       toast({
         title: "Microphone Error",
-        description: "Could not access microphone. Please check permissions.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -81,6 +154,12 @@ export const VoiceRecorder = ({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+      }
+      
+      // Clean up stream if recording was stopped manually
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     }
   };
@@ -109,6 +188,10 @@ export const VoiceRecorder = ({
   const deleteRecording = () => {
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
     }
     setRecordedBlob(null);
     setAudioUrl('');

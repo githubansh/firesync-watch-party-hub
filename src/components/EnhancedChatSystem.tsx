@@ -86,18 +86,59 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
     
     if (isLoading) return;
 
-    const url = URL.createObjectURL(audioBlob);
-    console.log('Sending voice message with duration:', duration);
-    
-    const success = await sendMessage(roomId, url, 'voice', duration);
-    
-    if (success) {
-      scrollToBottom();
+    try {
+      // Convert blob to base64 for storage
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Audio = reader.result as string;
+        
+        console.log('Sending voice message with duration:', duration);
+        
+        const success = await sendMessage(roomId, base64Audio, 'voice', duration);
+        
+        if (success) {
+          scrollToBottom();
+          toast({
+            title: "Voice Message Sent",
+            description: "Your voice message has been sent successfully",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to send voice message",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      reader.onerror = () => {
+        console.error('Error reading audio file');
+        toast({
+          title: "Error",
+          description: "Failed to process voice message",
+          variant: "destructive",
+        });
+      };
+      
+      reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      console.error('Error handling voice message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send voice message",
+        variant: "destructive",
+      });
     }
   };
 
   const togglePlayback = (messageId: string) => {
-    const audioUrl = messages.find(msg => msg.id === messageId)?.message;
+    const message = messages.find(msg => msg.id === messageId);
+    if (!message) {
+      console.error('Message not found for ID:', messageId);
+      return;
+    }
+
+    const audioUrl = message.message;
 
     if (!audioUrl) {
       console.error('Audio URL not found for message ID:', messageId);
@@ -105,9 +146,20 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
     }
 
     if (!audioRefs.current[messageId]) {
-      audioRefs.current[messageId] = new Audio(audioUrl);
+      // Create audio element
+      const audio = new Audio();
       
-      audioRefs.current[messageId].addEventListener('timeupdate', () => {
+      // Handle base64 audio data
+      if (audioUrl.startsWith('data:audio')) {
+        audio.src = audioUrl;
+      } else {
+        // Fallback for URL-based audio
+        audio.src = audioUrl;
+      }
+      
+      audioRefs.current[messageId] = audio;
+      
+      audio.addEventListener('timeupdate', () => {
         const audio = audioRefs.current[messageId];
         if (audio) {
           const progress = (audio.currentTime / audio.duration) * 100;
@@ -118,7 +170,7 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
         }
       });
 
-      audioRefs.current[messageId].addEventListener('ended', () => {
+      audio.addEventListener('ended', () => {
         setPlayingStates(prevState => ({
           ...prevState,
           [messageId]: false,
@@ -127,6 +179,15 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
           ...prevProgress,
           [messageId]: 0,
         }));
+      });
+
+      audio.addEventListener('error', (error) => {
+        console.error('Audio playback error:', error);
+        toast({
+          title: "Playback Error",
+          description: "Failed to play voice message",
+          variant: "destructive",
+        });
       });
     }
 
@@ -139,21 +200,30 @@ export const EnhancedChatSystem = ({ roomId, messages, currentUsername }: Enhanc
         [messageId]: false,
       }));
     } else {
-      audio.play();
-      setPlayingStates(prevState => {
-        // Pause all other audio instances
-        Object.keys(prevState).forEach(id => {
-          if (id !== messageId && audioRefs.current[id]) {
-            audioRefs.current[id].pause();
-          }
-        });
-
-        return {
-          ...Object.fromEntries(Object.keys(prevState)
-            .map(key => [key, false])), // Pause all others
-          [messageId]: true, // Play current
-        };
+      // Pause all other audio instances
+      Object.keys(playingStates).forEach(id => {
+        if (id !== messageId && audioRefs.current[id]) {
+          audioRefs.current[id].pause();
+          setPlayingStates(prevState => ({
+            ...prevState,
+            [id]: false,
+          }));
+        }
       });
+
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Playback Error",
+          description: "Failed to play voice message",
+          variant: "destructive",
+        });
+      });
+      
+      setPlayingStates(prevState => ({
+        ...prevState,
+        [messageId]: true,
+      }));
     }
   };
 

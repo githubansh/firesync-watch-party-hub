@@ -16,7 +16,7 @@ interface MobilePartyRoomProps {
 }
 
 export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) => {
-  const { room, participants, chatMessages, sendSyncEvent } = useRealtimeSync(roomId);
+  const { room, participants, chatMessages, sendSyncEvent, connectionStatus } = useRealtimeSync(roomId);
   const [activeTab, setActiveTab] = useState<'remote' | 'chat' | 'share'>('remote');
   const [currentUsername, setCurrentUsername] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -155,6 +155,36 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
                 👑 You are the Host
               </Badge>
             )}
+            {/* Connection Status */}
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-green-400' :
+                connectionStatus === 'connecting' ? 'bg-yellow-400' :
+                connectionStatus === 'error' ? 'bg-red-400' :
+                'bg-gray-400'
+              }`} />
+              <span className={`text-xs ${
+                connectionStatus === 'connected' ? 'text-green-400' :
+                connectionStatus === 'connecting' ? 'text-yellow-400' :
+                connectionStatus === 'error' ? 'text-red-400' :
+                'text-gray-400'
+              }`}>
+                {connectionStatus === 'connected' ? 'Connected' :
+                 connectionStatus === 'connecting' ? 'Connecting...' :
+                 connectionStatus === 'error' ? 'Connection Error' :
+                 'Disconnected'}
+              </span>
+              {connectionStatus === 'error' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-1"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
           <Badge className={
             mockRoom.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
