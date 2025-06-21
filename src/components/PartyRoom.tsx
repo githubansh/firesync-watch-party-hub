@@ -58,27 +58,6 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
     { id: '3', username: 'Bob', role: 'member', device_type: 'firetv', device_name: 'Bedroom Fire TV', is_connected: true },
   ];
 
-  const mockMessages: ChatMessage[] = chatMessages.length > 0 ? chatMessages : [
-    {
-      id: '1',
-      room_id: roomId,
-      user_id: 'system',
-      username: 'System',
-      message: `Welcome to ${mockRoom.name}! Everyone is connected and ready.`,
-      message_type: 'system',
-      created_at: new Date(Date.now() - 120000).toISOString(),
-    },
-    {
-      id: '2', 
-      room_id: roomId,
-      user_id: '2',
-      username: 'Alice',
-      message: 'Ready for movie night! 🍿',
-      message_type: 'text',
-      created_at: new Date(Date.now() - 60000).toISOString(),
-    }
-  ];
-
   const isHost = mockParticipants.find(p => p.username.includes('You'))?.role === 'host';
 
   const handleStartParty = () => {
@@ -310,7 +289,7 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
             {/* Enhanced Chat System */}
             <EnhancedChatSystem
               roomId={roomId}
-              messages={mockMessages}
+              messages={chatMessages}
               currentUsername={currentUsername}
             />
           </div>

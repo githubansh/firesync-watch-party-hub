@@ -113,18 +113,6 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     { id: '3', username: 'Mom', role: 'member', device_type: 'mobile', device_name: 'Android', is_connected: true },
   ];
 
-  const mockMessages: ChatMessage[] = chatMessages.length > 0 ? chatMessages : [
-    {
-      id: '1',
-      room_id: roomId,
-      user_id: 'system',
-      username: 'System',
-      message: 'Everyone has joined the watch party!',
-      message_type: 'system' as const,
-      created_at: new Date(Date.now() - 120000).toISOString(),
-    }
-  ];
-
   // Find current user in participants
   const currentUser = mockParticipants.find(p => 
     p.user_id === currentUserId || p.username === currentUsername
@@ -250,9 +238,9 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-                {tab.key === 'chat' && mockMessages.length > 0 && (
+                {tab.key === 'chat' && chatMessages.length > 0 && (
                   <Badge className="text-xs ml-1">
-                    {mockMessages.length}
+                    {chatMessages.length}
                   </Badge>
                 )}
               </button>
@@ -313,7 +301,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         {activeTab === 'chat' && (
           <EnhancedChatSystem
             roomId={roomId}
-            messages={mockMessages}
+            messages={chatMessages}
             currentUsername={currentUsername || 'You'}
           />
         )}
