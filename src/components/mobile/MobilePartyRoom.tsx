@@ -181,14 +181,13 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-teal-900 to-slate-900">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-black/20 backdrop-blur-lg border-b border-teal-500/30 p-4">
+      <div className="p-4">
         <div className="flex items-center justify-between">
           {isHost ? (
             <Button
               variant="outline"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
               onClick={handleEndParty}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -197,7 +196,6 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           ) : (
             <Button
               variant="ghost"
-              className="text-white hover:bg-teal-500/20"
               onClick={handleLeaveParty}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -205,27 +203,17 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
             </Button>
           )}
           <div className="text-center">
-            <h1 className="text-white font-bold">{mockRoom.name}</h1>
-            <p className="text-gray-400 text-sm">Room {mockRoom.code}</p>
+            <h1 className="font-bold">{mockRoom.name}</h1>
+            <p className="text-sm">Room {mockRoom.code}</p>
             {isHost && (
-              <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 text-xs mt-1">
+              <Badge className="text-xs mt-1">
                 👑 You are the Host
               </Badge>
             )}
             {/* Connection Status */}
             <div className="flex items-center justify-center gap-1 mt-1">
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-400' :
-                connectionStatus === 'connecting' ? 'bg-yellow-400' :
-                connectionStatus === 'error' ? 'bg-red-400' :
-                'bg-gray-400'
-              }`} />
-              <span className={`text-xs ${
-                connectionStatus === 'connected' ? 'text-green-400' :
-                connectionStatus === 'connecting' ? 'text-yellow-400' :
-                connectionStatus === 'error' ? 'text-red-400' :
-                'text-gray-400'
-              }`}>
+              <div className={`w-2 h-2 rounded-full`} />
+              <span className={`text-xs`}>
                 {connectionStatus === 'connected' ? 'Connected' :
                  connectionStatus === 'connecting' ? 'Connecting...' :
                  connectionStatus === 'error' ? 'Connection Error' :
@@ -235,7 +223,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-1"
+                  className="text-xs"
                   onClick={() => window.location.reload()}
                 >
                   Retry
@@ -243,18 +231,14 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
               )}
             </div>
           </div>
-          <Badge className={
-            mockRoom.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-            mockRoom.status === 'waiting' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
-            'bg-red-500/20 text-red-400 border-red-500/30'
-          }>
+          <Badge>
             {mockRoom.status === 'active' ? 'Live' : mockRoom.status === 'waiting' ? 'Waiting' : 'Ended'}
           </Badge>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-black/10 border-b border-teal-500/30">
+      <div>
         <div className="flex">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -262,16 +246,12 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? 'text-white bg-teal-500/20 border-b-2 border-teal-400'
-                    : 'text-gray-400 hover:text-white hover:bg-teal-500/10'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors`}
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
                 {tab.key === 'chat' && mockMessages.length > 0 && (
-                  <Badge className="bg-red-500 text-white text-xs ml-1">
+                  <Badge className="text-xs ml-1">
                     {mockMessages.length}
                   </Badge>
                 )}
@@ -284,15 +264,15 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
       <div className="p-4 space-y-6">
         {/* Host Controls */}
         {isHost && mockRoom.status === 'waiting' && (
-          <Card className="bg-green-500/10 border-green-500/20 p-4">
+          <Card className="p-4">
             <div className="text-center">
-              <h3 className="font-semibold text-white mb-2">Ready to start?</h3>
-              <p className="text-gray-400 text-sm mb-4">
+              <h3 className="font-semibold mb-2">Ready to start?</h3>
+              <p className="text-sm mb-4">
                 {mockParticipants.length} participant{mockParticipants.length !== 1 ? 's' : ''} ready
               </p>
               <Button
                 onClick={handleStartParty}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                className="w-full"
               >
                 Start Party
               </Button>
@@ -301,20 +281,15 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         )}
 
         {/* Participants Quick View */}
-        <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 p-4">
+        <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-blue-400" />
-            <span className="font-semibold text-white">Participants ({mockParticipants.length})</span>
+            <Users className="w-5 h-5" />
+            <span className="font-semibold">Participants ({mockParticipants.length})</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {mockParticipants.map((participant) => (
               <Badge
                 key={participant.id}
-                className={`${
-                  participant.role === 'host'
-                    ? 'bg-teal-500/20 text-teal-400 border-teal-500/30'
-                    : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                } ${(participant.user_id === currentUserId || participant.username === currentUsername) ? 'ring-2 ring-yellow-400' : ''}`}
               >
                 {participant.username}
                 {participant.role === 'host' && ' 👑'}
@@ -352,28 +327,25 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
         )}
 
         {/* Current Status Card */}
-        <Card className="bg-slate-800/50 backdrop-blur-lg border-teal-500/20 p-4">
-          <h3 className="font-semibold text-white mb-3">Playback Status</h3>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3">Playback Status</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-400">Status:</span>
-              <Badge className={mockRoom.is_playing ? 
-                "bg-green-500/20 text-green-400 border-green-500/30" : 
-                "bg-red-500/20 text-red-400 border-red-500/30"
-              }>
+              <Badge>
                 {mockRoom.is_playing ? 'Playing' : 'Paused'}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Position:</span>
-              <span className="text-white">
+              <span>
                 {Math.floor((mockRoom.current_position || 0) / 60000)}:
                 {String(Math.floor(((mockRoom.current_position || 0) % 60000) / 1000)).padStart(2, '0')}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Sync Status:</span>
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+              <Badge>
                 All Devices Synced
               </Badge>
             </div>

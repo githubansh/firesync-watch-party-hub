@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Smartphone, Users, Wifi, Tv, CheckCircle } from 'lucide-react';
-import { toast } from "@/hooks/use-toast";
+import { ArrowLeft, Smartphone, Users, Wifi, Tv, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 import { useRoomManagement } from '@/hooks/useRoomManagement';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 
 interface JoinRoomProps {
   onRoomJoined: (roomId: string) => void;
@@ -23,27 +28,27 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
     { id: '2', name: 'Bedroom Fire TV', status: 'available' }
   ]);
 
+  const { toast } = useToast();
   const { joinRoom, isLoading } = useRoomManagement();
 
   const handleJoinRoom = async () => {
-    if (!roomCode.trim()) {
+    if (roomCode.length < 6) {
       toast({
-        title: "Error",
-        description: "Please enter a room code",
+        title: "Invalid Code",
+        description: "Please enter a 6-character room code.",
         variant: "destructive",
       });
       return;
     }
-
     if (!username.trim()) {
       toast({
-        title: "Error", 
-        description: "Please enter your name",
+        title: "Name Required", 
+        description: "Please enter your name to join.",
         variant: "destructive",
       });
       return;
     }
-
+    
     setStep('connecting');
     
     try {
@@ -54,19 +59,20 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
         deviceName: 'Mobile Device',
       });
 
-      // Store username and user ID in localStorage for later retrieval
       localStorage.setItem(`room_${room.id}_username`, username);
       
-      // Get current user ID (authenticated or anonymous)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         localStorage.setItem(`room_${room.id}_userid`, user.id);
       } else {
-        // For anonymous users, we'll generate a UUID and store it
         const anonymousUserId = crypto.randomUUID();
         localStorage.setItem(`room_${room.id}_userid`, anonymousUserId);
       }
 
+      toast({
+        title: "Success!",
+        description: `You have joined "${room.name}".`,
+      });
       onRoomJoined(room.id);
     } catch (error) {
       setStep('join');
@@ -140,105 +146,53 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/5 backdrop-blur-lg border-white/10 p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Smartphone className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Join Watch Party</h2>
-          <p className="text-gray-400">Enter the room code to join your family</p>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="username" className="text-white">Your Name</Label>
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Join a Watch Party</CardTitle>
+          <CardDescription>
+            Enter your name and the 6-character code from the host.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="username">Your Name</Label>
             <Input
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your name"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 mt-2"
+              placeholder="e.g., Jane Doe"
+              disabled={isLoading}
             />
           </div>
-
-          <div>
-            <Label htmlFor="roomCode" className="text-white">Room Code</Label>
-            <Input
-              id="roomCode"
-              value={roomCode}
-              onChange={(e) => setRoomCode(formatRoomCode(e.target.value))}
-              placeholder="ABC123"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 mt-2 text-center text-2xl font-mono tracking-widest"
-              maxLength={6}
-            />
-            <p className="text-sm text-gray-400 mt-1">Enter the 6-digit code from the host</p>
+          <div className="space-y-2 text-center">
+            <Label htmlFor="room-code">Room Code</Label>
+            <InputOTP 
+              maxLength={6} 
+              value={roomCode} 
+              onChange={setRoomCode}
+              disabled={isLoading}
+            >
+              <InputOTPGroup className="mx-auto">
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
-
-          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Wifi className="w-5 h-5 text-green-400" />
-              <span className="font-semibold text-white">Auto-Discovery Ready</span>
-            </div>
-            <div className="space-y-2">
-              {discoveredTVs.map((tv) => (
-                <div key={tv.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Tv className="w-4 h-4 text-green-400" />
-                    <span className="text-white text-sm">{tv.name}</span>
-                  </div>
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                    Ready
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-2">
-              FireSync detected these Fire TVs on your WiFi network
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-4 border border-purple-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-5 h-5 text-purple-400" />
-              <span className="font-semibold text-white">What happens next?</span>
-            </div>
-            <ul className="text-sm text-gray-300 space-y-1">
-              <li>• Your Fire TV will sync with the host's content</li>
-              <li>• Get full remote control access via mobile app</li>
-              <li>• Chat and react in real-time with family</li>
-              <li>• Perfect synchronization with &lt;100ms delay</li>
-              <li>• Share remote control democratically</li>
-            </ul>
-          </div>
-
-          <Button 
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-            onClick={handleJoinRoom}
-            disabled={isLoading || !roomCode.trim() || !username.trim()}
-          >
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <Smartphone className="w-4 h-4 mr-2" />
-                Join Party
-              </>
-            )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="ghost" onClick={onBack} disabled={isLoading}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
           </Button>
-
-          <Button 
-            variant="outline" 
-            className="w-full border-white/20 text-white hover:bg-white/10"
-            onClick={onBack}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
+          <Button onClick={handleJoinRoom} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? 'Joining...' : 'Join Room'}
           </Button>
-        </div>
+        </CardFooter>
       </Card>
     </div>
   );

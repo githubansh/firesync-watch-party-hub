@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { CreateRoom } from '@/components/CreateRoom';
 import { JoinRoom } from '@/components/JoinRoom';
@@ -61,7 +60,7 @@ export const FireTVApp = () => {
 
   if (currentView === 'auth') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <div className="min-h-screen">
         <AuthPage 
           onBack={() => setCurrentView('home')}
           onAuthenticated={() => setCurrentView('home')}
@@ -72,7 +71,7 @@ export const FireTVApp = () => {
 
   if (currentView === 'create') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <div className="min-h-screen">
         <CreateRoom 
           onRoomCreated={handleRoomCreated}
           onBack={() => setCurrentView('home')}
@@ -83,7 +82,7 @@ export const FireTVApp = () => {
 
   if (currentView === 'join') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <div className="min-h-screen">
         <JoinRoom 
           onRoomJoined={handleRoomJoined}
           onBack={() => setCurrentView('home')}
@@ -94,7 +93,7 @@ export const FireTVApp = () => {
 
   if (currentView === 'room' && currentRoomId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <div className="min-h-screen">
         <MobilePartyRoom 
           roomId={currentRoomId}
           onLeaveRoom={handleLeaveRoom}
@@ -104,7 +103,7 @@ export const FireTVApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+    <div className="min-h-screen">
       <MobileHome 
         user={user}
         onCreateRoom={handleCreateRoom}
