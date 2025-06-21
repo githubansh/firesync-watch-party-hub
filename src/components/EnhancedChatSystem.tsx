@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Mic, Send, Play, Pause } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MessageCircle, Mic, Send, Play, Pause, Smile } from "lucide-react";
 import { VoiceRecorder } from "./VoiceRecorder";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ChatMessage } from "@/types/chat";
 import { useChatManagement } from "@/hooks/useChatManagement";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface EnhancedChatSystemProps {
   roomId: string;
@@ -19,13 +21,7 @@ const quickEmojis = ["👍", "🔥", "💯", "👏", "😂", "🎉"];
 
 const formatTime = (dateString: string) => {
   const date = new Date(dateString);
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-  const minutesStr = minutes < 10 ? "0" + minutes : minutes;
-  return `${hours}:${minutesStr} ${ampm}`;
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const formatDuration = (duration: number) => {
@@ -41,346 +37,178 @@ export const EnhancedChatSystem = ({
 }: EnhancedChatSystemProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const [playingStates, setPlayingStates] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [playbackProgress, setPlaybackProgress] = useState<{
-    [key: string]: number;
-  }>({});
+  const [playingStates, setPlayingStates] = useState<{ [key: string]: boolean }>({});
+  const [playbackProgress, setPlaybackProgress] = useState<{ [key: string]: number }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
-
+  const { toast } = useToast();
   const { sendMessage, isLoading } = useChatManagement();
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isLoading) return;
-
-    console.log("Sending text message:", newMessage);
     const success = await sendMessage(roomId, newMessage, "text");
-
-    if (success) {
-      setNewMessage("");
-      scrollToBottom();
-    }
+    if (success) setNewMessage("");
   };
 
   const sendQuickEmoji = async (emoji: string) => {
     if (isLoading) return;
-
-    console.log("Sending emoji:", emoji);
-    const success = await sendMessage(roomId, emoji, "emoji");
-
-    if (success) {
-      scrollToBottom();
-    }
+    await sendMessage(roomId, emoji, "emoji");
   };
 
   const handleVoiceMessage = async (audioBlob: Blob, duration: number) => {
     setShowVoiceRecorder(false);
-
     if (isLoading) return;
 
     try {
-      // Convert blob to base64 for storage
       const reader = new FileReader();
       reader.onload = async () => {
         const base64Audio = reader.result as string;
-
-        console.log("Sending voice message with duration:", duration);
-
-        const success = await sendMessage(
-          roomId,
-          base64Audio,
-          "voice",
-          duration,
-        );
-
+        const success = await sendMessage(roomId, base64Audio, "voice", duration);
         if (success) {
-          scrollToBottom();
-          toast({
-            title: "Voice Message Sent",
-            description: "Your voice message has been sent successfully",
-          });
+          toast({ title: "Voice Message Sent" });
         } else {
-          toast({
-            title: "Error",
-            description: "Failed to send voice message",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Failed to send voice message", variant: "destructive" });
         }
       };
-
-      reader.onerror = () => {
-        console.error("Error reading audio file");
-        toast({
-          title: "Error",
-          description: "Failed to process voice message",
-          variant: "destructive",
-        });
-      };
-
       reader.readAsDataURL(audioBlob);
     } catch (error) {
-      console.error("Error handling voice message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send voice message",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to send voice message", variant: "destructive" });
     }
   };
 
   const togglePlayback = (messageId: string) => {
     const message = messages.find((msg) => msg.id === messageId);
-    if (!message) {
-      console.error("Message not found for ID:", messageId);
-      return;
-    }
-
-    const audioUrl = message.message;
-
-    if (!audioUrl) {
-      console.error("Audio URL not found for message ID:", messageId);
-      return;
-    }
+    if (!message || !message.message) return;
 
     if (!audioRefs.current[messageId]) {
-      // Create audio element
-      const audio = new Audio();
-
-      // Handle base64 audio data
-      if (audioUrl.startsWith("data:audio")) {
-        audio.src = audioUrl;
-      } else {
-        // Fallback for URL-based audio
-        audio.src = audioUrl;
-      }
-
+      const audio = new Audio(message.message);
       audioRefs.current[messageId] = audio;
 
       audio.addEventListener("timeupdate", () => {
-        const audio = audioRefs.current[messageId];
-        if (audio) {
-          const progress = (audio.currentTime / audio.duration) * 100;
-          setPlaybackProgress((prevProgress) => ({
-            ...prevProgress,
-            [messageId]: progress,
-          }));
-        }
+        setPlaybackProgress(prev => ({ ...prev, [messageId]: (audio.currentTime / audio.duration) * 100 }));
       });
-
       audio.addEventListener("ended", () => {
-        setPlayingStates((prevState) => ({
-          ...prevState,
-          [messageId]: false,
-        }));
-        setPlaybackProgress((prevProgress) => ({
-          ...prevProgress,
-          [messageId]: 0,
-        }));
+        setPlayingStates(prev => ({ ...prev, [messageId]: false }));
+        setPlaybackProgress(prev => ({ ...prev, [messageId]: 0 }));
       });
-
-      audio.addEventListener("error", (error) => {
-        console.error("Audio playback error:", error);
-        toast({
-          title: "Playback Error",
-          description: "Failed to play voice message",
-          variant: "destructive",
-        });
-      });
+      audio.addEventListener("error", () => toast({ title: "Playback Error", variant: "destructive" }));
     }
 
     const audio = audioRefs.current[messageId];
-
     if (playingStates[messageId]) {
       audio.pause();
-      setPlayingStates((prevState) => ({
-        ...prevState,
-        [messageId]: false,
-      }));
     } else {
-      // Pause all other audio instances
-      Object.keys(playingStates).forEach((id) => {
-        if (id !== messageId && audioRefs.current[id]) {
-          audioRefs.current[id].pause();
-          setPlayingStates((prevState) => ({
-            ...prevState,
-            [id]: false,
-          }));
-        }
-      });
-
-      audio.play().catch((error) => {
-        console.error("Error playing audio:", error);
-        toast({
-          title: "Playback Error",
-          description: "Failed to play voice message",
-          variant: "destructive",
-        });
-      });
-
-      setPlayingStates((prevState) => ({
-        ...prevState,
-        [messageId]: true,
-      }));
+      Object.values(audioRefs.current).forEach(a => a.pause());
+      audio.play().catch(() => toast({ title: "Playback Error", variant: "destructive" }));
     }
+    setPlayingStates(prev => ({ ...Object.fromEntries(Object.keys(prev).map(k => [k, false])), [messageId]: !prev[messageId] }));
   };
+  
+  const MessageBubble = ({ msg }: { msg: ChatMessage }) => {
+    const isCurrentUser = msg.username === currentUsername;
 
-  return (
-    <Card className="bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20 p-4 h-96 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <MessageCircle className="w-4 h-4" />
-          Family Chat
-        </h3>
-        <div className="flex items-center gap-2">
-          <Badge className="bg-[#00e6e6]/20 text-[#00e6e6] border-[#00e6e6]/30 text-xs">
-            {messages.length} messages
-          </Badge>
+    if (msg.message_type === "system") {
+      return (
+        <div className="text-center text-xs text-muted-foreground my-2">{msg.message}</div>
+      );
+    }
+    
+    return (
+      <div className={cn("flex items-end gap-2 my-2", isCurrentUser ? "justify-end" : "justify-start")}>
+        {!isCurrentUser && (
+          <Avatar className="w-8 h-8">
+            <AvatarFallback>{msg.username?.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        )}
+        <div
+          className={cn(
+            "rounded-lg px-3 py-2 max-w-xs sm:max-w-md",
+            isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+          )}
+        >
+          {!isCurrentUser && <p className="text-xs font-semibold mb-1">{msg.username}</p>}
+          {msg.message_type === 'text' && <p className="text-sm">{msg.message}</p>}
+          {msg.message_type === 'emoji' && <p className="text-4xl">{msg.message}</p>}
+          {msg.message_type === 'voice' && msg.message && (
+            <div className="flex items-center gap-2">
+              <Button size="icon" variant="ghost" className="w-8 h-8" onClick={() => togglePlayback(msg.id)}>
+                {playingStates[msg.id] ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+              <div className="w-24 h-1 bg-muted-foreground/20 rounded-full">
+                <div className="h-1 bg-primary rounded-full" style={{ width: `${playbackProgress[msg.id] || 0}%` }} />
+              </div>
+              <span className="text-xs w-10">{formatDuration(msg.duration || 0)}</span>
+            </div>
+          )}
+          <p className="text-xs text-right mt-1 opacity-70">{formatTime(msg.created_at)}</p>
         </div>
       </div>
+    );
+  };
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-[#00e6e6]/30 scrollbar-track-transparent">
-        {messages.map((message) => {
-          const isCurrentUser =
-            message.username === currentUsername ||
-            message.user_id === currentUsername ||
-            message.username.toLowerCase() === currentUsername.toLowerCase();
+  if (showVoiceRecorder) {
+    return (
+      <VoiceRecorder
+        onCancel={() => setShowVoiceRecorder(false)}
+        onRecordingComplete={handleVoiceMessage}
+      />
+    );
+  }
 
-          return (
-            <div
-              key={message.id}
-              className={`flex ${
-                isCurrentUser ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`max-w-[80%] ${
-                  isCurrentUser
-                    ? "bg-[#00e6e6]/20 border-[#00e6e6]/30"
-                    : "bg-[#111184]/40 border-[#111184]/30"
-                } border rounded-lg p-3`}
-              >
-                {!isCurrentUser && (
-                  <p className="text-[#00e6e6] text-xs font-medium mb-1">
-                    {message.username}
-                  </p>
-                )}
-
-                {message.message_type === "voice" ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10"
-                      onClick={() => togglePlayback(message.id)}
-                    >
-                      {playingStates[message.id] ? (
-                        <Pause className="w-4 h-4 text-[#00e6e6]" />
-                      ) : (
-                        <Play className="w-4 h-4 text-[#00e6e6]" />
-                      )}
-                    </Button>
-                    <div className="flex-1">
-                      <div className="h-1 bg-[#111184]/40 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#00e6e6] transition-all duration-300"
-                          style={{
-                            width: `${playbackProgress[message.id] || 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-300">
-                      {message.voice_duration
-                        ? formatDuration(message.voice_duration)
-                        : message.duration
-                          ? formatDuration(message.duration)
-                          : "0:00"}
-                    </span>
-                  </div>
-                ) : message.message_type === "emoji" ? (
-                  <div className="text-2xl">{message.message}</div>
-                ) : (
-                  <p className="text-white text-sm">{message.message}</p>
-                )}
-
-                <p className="text-gray-400 text-xs mt-1">
-                  {formatTime(message.created_at)}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+  return (
+    <Card className="flex flex-col h-[50vh] sm:h-[60vh]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageCircle />
+          Party Chat
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex-grow overflow-y-auto pr-2">
+        {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
         <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="space-y-3">
-        {/* Voice Recording */}
-        {showVoiceRecorder ? (
-          <VoiceRecorder
-            onRecordingComplete={handleVoiceMessage}
-            onCancel={() => setShowVoiceRecorder(false)}
+      </CardContent>
+      <CardFooter className="pt-4 border-t">
+        <div className="flex items-center gap-2 w-full">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="icon" variant="ghost"><Smile /></Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2">
+              <div className="flex gap-1">
+                {quickEmojis.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant="ghost"
+                    size="icon"
+                    className="text-2xl"
+                    onClick={() => sendQuickEmoji(emoji)}
+                    disabled={isLoading}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Input
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+            placeholder="Type a message..."
+            disabled={isLoading}
           />
-        ) : (
-          <>
-            {/* Emoji Quick Actions */}
-            <div className="flex gap-1 mb-2">
-              {quickEmojis.map((emoji) => (
-                <Button
-                  key={emoji}
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 hover:bg-[#00e6e6]/10 text-lg"
-                  onClick={() => sendQuickEmoji(emoji)}
-                  disabled={isLoading}
-                >
-                  {emoji}
-                </Button>
-              ))}
-            </div>
-
-            {/* Message Input */}
-            <div className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Type a message..."
-                className="flex-1 bg-[#111184]/40 border-[#00e6e6]/30 text-white placeholder:text-gray-400 focus:border-[#00e6e6]"
-                disabled={isLoading}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-10 w-10 p-0 hover:bg-[#00e6e6]/10"
-                onClick={() => setShowVoiceRecorder(true)}
-                disabled={isLoading}
-              >
-                <Mic className="w-4 h-4 text-[#00e6e6]" />
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isLoading}
-                className="bg-[#00e6e6] hover:bg-[#00cccc] text-[#111184] font-medium"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
+          <Button size="icon" onClick={() => setShowVoiceRecorder(true)} disabled={isLoading} variant="ghost">
+            <Mic />
+          </Button>
+          <Button size="icon" onClick={handleSendMessage} disabled={isLoading || !newMessage.trim()}>
+            <Send />
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

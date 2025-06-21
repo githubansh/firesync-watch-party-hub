@@ -29,7 +29,7 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
   ]);
 
   const { toast } = useToast();
-  const { joinRoom, isLoading } = useRoomManagement();
+  const { joinRoom } = useRoomManagement();
 
   const handleJoinRoom = async () => {
     if (roomCode.length < 6) {
@@ -85,62 +85,14 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
 
   if (step === 'connecting') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/5 backdrop-blur-lg border-white/10 p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Connecting to Party</h2>
-            <p className="text-gray-400">Setting up your synchronized experience</p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <h3 className="font-semibold text-white mb-3">Connection Progress</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Joined room {roomCode}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Discovered Fire TVs</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-                  <span className="text-gray-300">Synchronizing with host...</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <h3 className="font-semibold text-white mb-2">Discovered Fire TVs</h3>
-              <div className="space-y-2">
-                {discoveredTVs.map((tv) => (
-                  <div key={tv.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Tv className="w-4 h-4 text-blue-400" />
-                      <span className="text-white text-sm">{tv.name}</span>
-                    </div>
-                    <Badge className={tv.status === 'connected' ? 
-                      "bg-green-500/20 text-green-400 border-green-500/30" : 
-                      "bg-orange-500/20 text-orange-400 border-orange-500/30"
-                    }>
-                      {tv.status === 'connected' ? 'Connected' : 'Connecting...'}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-400">
-                Please wait while we sync your device with the host's content...
-              </p>
-            </div>
-          </div>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <div className="mb-6">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Joining Party...</h1>
+        <p className="text-muted-foreground mt-2 max-w-sm">
+          Please wait while we connect you to <span className="font-semibold text-primary">{roomCode}</span>. This shouldn't take long.
+        </p>
       </div>
     );
   }
@@ -162,7 +114,6 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g., Jane Doe"
-              disabled={isLoading}
             />
           </div>
           <div className="space-y-2 text-center">
@@ -171,7 +122,6 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
               maxLength={6} 
               value={roomCode} 
               onChange={setRoomCode}
-              disabled={isLoading}
             >
               <InputOTPGroup className="mx-auto">
                 <InputOTPSlot index={0} />
@@ -185,12 +135,11 @@ export const JoinRoom = ({ onRoomJoined, onBack }: JoinRoomProps) => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="ghost" onClick={onBack} disabled={isLoading}>
+          <Button variant="ghost" onClick={onBack}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
           </Button>
-          <Button onClick={handleJoinRoom} disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Joining...' : 'Join Room'}
+          <Button onClick={handleJoinRoom}>
+            Join Room
           </Button>
         </CardFooter>
       </Card>

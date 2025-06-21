@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Share2, Copy, MessageSquare, QrCode, Users } from 'lucide-react';
-import { toast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Share2, Copy, MessageSquare, QrCode } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 interface RoomSharingProps {
   roomCode: string;
@@ -13,28 +12,20 @@ interface RoomSharingProps {
   participantCount: number;
 }
 
-export const RoomSharing = ({ roomCode, roomName, participantCount }: RoomSharingProps) => {
+export const RoomSharing = ({ roomCode, roomName }: RoomSharingProps) => {
   const [shareUrl] = useState(`${window.location.origin}?join=${roomCode}`);
-  const [showQR, setShowQR] = useState(false);
+  const { toast } = useToast();
 
-  const copyRoomCode = () => {
-    navigator.clipboard.writeText(roomCode);
+  const copyToClipboard = (text: string, successMessage: string) => {
+    navigator.clipboard.writeText(text);
     toast({
       title: "Copied!",
-      description: "Room code copied to clipboard",
-    });
-  };
-
-  const copyShareUrl = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: "Link Copied!",
-      description: "Share this link with your family",
+      description: successMessage,
     });
   };
 
   const shareRoom = async () => {
-    const shareText = `🎬 Join our family watch party!\n\nRoom: ${roomName}\nCode: ${roomCode}\nLink: ${shareUrl}\n\n🍿 Let's watch together!`;
+    const shareText = `🎬 Join our family watch party!\n\nRoom: ${roomName}\nCode: ${roomCode}\nLink: ${shareUrl}`;
     
     if (navigator.share) {
       try {
@@ -44,126 +35,72 @@ export const RoomSharing = ({ roomCode, roomName, participantCount }: RoomSharin
           url: shareUrl,
         });
       } catch (error) {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(shareText);
-        toast({
-          title: "Share text copied!",
-          description: "Paste this anywhere to invite family",
-        });
+        copyToClipboard(shareText, "Share text copied to clipboard.");
       }
     } else {
-      navigator.clipboard.writeText(shareText);
-      toast({
-        title: "Share text copied!",
-        description: "Paste this anywhere to invite family",
-      });
+      copyToClipboard(shareText, "Share text copied to clipboard.");
     }
   };
 
-  const sendSMS = () => {
-    const message = encodeURIComponent(`Join our family watch party! Room: ${roomName}, Code: ${roomCode}, Link: ${shareUrl}`);
-    window.open(`sms:?body=${message}`, '_blank');
-  };
-
-  const sendWhatsApp = () => {
-    const message = encodeURIComponent(`🎬 Join our family watch party!\n\nRoom: ${roomName}\nCode: ${roomCode}\nLink: ${shareUrl}\n\n🍿 Let's watch together!`);
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-  };
-
   return (
-    <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Share2 className="w-5 h-5 text-blue-400" />
-        <h3 className="font-semibold text-white">Invite Family Members</h3>
-        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-          <Users className="w-3 h-3 mr-1" />
-          {participantCount}
-        </Badge>
-      </div>
-      
-      {/* Room Code Display */}
-      <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Share2 className="w-5 h-5" />
+          Invite Family
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
         <div>
-          <label className="text-sm text-gray-400 mb-2 block">Room Code</label>
-          <div className="flex gap-2">
+          <Label htmlFor="room-code">Room Code</Label>
+          <div className="flex gap-2 mt-1">
             <Input
+              id="room-code"
               value={roomCode}
               readOnly
-              className="bg-white/10 border-white/20 text-white font-mono text-lg text-center"
+              className="font-mono text-lg text-center"
             />
             <Button
-              onClick={copyRoomCode}
+              onClick={() => copyToClipboard(roomCode, "Room code copied to clipboard.")}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
+              size="icon"
             >
               <Copy className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Share Link */}
         <div>
-          <label className="text-sm text-gray-400 mb-2 block">Direct Link</label>
-          <div className="flex gap-2">
+          <Label htmlFor="share-link">Direct Link</Label>
+          <div className="flex gap-2 mt-1">
             <Input
+              id="share-link"
               value={shareUrl}
               readOnly
-              className="bg-white/10 border-white/20 text-white text-sm"
             />
             <Button
-              onClick={copyShareUrl}
+              onClick={() => copyToClipboard(shareUrl, "Share link copied to clipboard.")}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
+              size="icon"
             >
               <Copy className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Quick Share Options */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            onClick={shareRoom}
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-          >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button onClick={shareRoom}>
             <Share2 className="w-4 h-4 mr-2" />
-            Share
+            Share via...
           </Button>
           <Button
-            onClick={sendWhatsApp}
-            className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Join our watch party: ${shareUrl}`)}`)}
           >
             <MessageSquare className="w-4 h-4 mr-2" />
             WhatsApp
           </Button>
         </div>
-
-        <Button
-          onClick={sendSMS}
-          variant="outline"
-          className="w-full border-white/20 text-white hover:bg-white/10"
-        >
-          📱 Send SMS Invite
-        </Button>
-
-        {/* QR Code Toggle */}
-        <Button
-          onClick={() => setShowQR(!showQR)}
-          variant="outline"
-          className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-        >
-          <QrCode className="w-4 h-4 mr-2" />
-          {showQR ? 'Hide' : 'Show'} QR Code
-        </Button>
-
-        {showQR && (
-          <div className="text-center p-4 bg-white rounded-lg">
-            <div className="text-8xl">📱</div>
-            <p className="text-sm text-gray-600 mt-2">QR Code for: {shareUrl}</p>
-            <p className="text-xs text-gray-500">Scan with camera to join</p>
-          </div>
-        )}
-      </div>
+      </CardContent>
     </Card>
   );
 };
