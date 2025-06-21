@@ -26,15 +26,32 @@ export const useChatManagement = () => {
         voiceDuration,
       });
 
+      // Get current user information
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Prepare the request body
+      const requestBody: any = {
+        roomId,
+        message,
+        messageType,
+        voiceDuration,
+      };
+
+      // If no authenticated user, try to get user info from localStorage
+      if (!user) {
+        const storedUserId = localStorage.getItem(`room_${roomId}_userid`);
+        const storedUsername = localStorage.getItem(`room_${roomId}_username`);
+        
+        if (storedUserId && storedUsername) {
+          requestBody.userId = storedUserId;
+          requestBody.username = storedUsername;
+        }
+      }
+
       const { data: result, error } = await supabase.functions.invoke(
         "send-chat",
         {
-          body: {
-            roomId,
-            message,
-            messageType,
-            voiceDuration,
-          },
+          body: requestBody,
         },
       );
 

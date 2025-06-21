@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, Users, MessageCircle, Send } from 'lucide-react';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useChatManagement } from '@/hooks/useChatManagement';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MobilePartyRoomProps {
   roomId: string;
@@ -15,13 +14,21 @@ interface MobilePartyRoomProps {
 }
 
 export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) => {
-  const { room, participants, syncEvents, chatMessages, sendSyncEvent } = useRealtimeSync(roomId);
+  const { room, participants, syncEvents, chatMessages, sendSyncEvent, leaveRoom, endParty } = useRealtimeSync(roomId);
   const { sendMessage, isLoading: chatLoading } = useChatManagement();
   const [chatMessage, setChatMessage] = useState('');
   const [showChat, setShowChat] = useState(false);
 
   const currentUser = participants.find(p => p.user_id === participants[0]?.user_id);
   const isHost = currentUser?.role === 'host';
+
+  // Auto-leave when party is ended
+  useEffect(() => {
+    if (room?.status === 'ended') {
+      console.log('Party ended, leaving room automatically');
+      onLeaveRoom();
+    }
+  }, [room?.status, onLeaveRoom]);
 
   const handlePlayPause = () => {
     const eventType = room?.is_playing ? 'pause' : 'play';
@@ -40,9 +47,27 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     }
   };
 
-  const handleEndParty = () => {
+  const handleEndParty = async () => {
     if (isHost) {
-      sendSyncEvent('end_party', {});
+      try {
+        await endParty();
+        // After ending party, leave the room
+        onLeaveRoom();
+      } catch (error) {
+        console.error('Failed to end party:', error);
+      }
+    }
+  };
+
+  const handleLeaveParty = async () => {
+    try {
+      await leaveRoom();
+      // After leaving room, call the parent callback
+      onLeaveRoom();
+    } catch (error) {
+      console.error('Failed to leave room:', error);
+      // Even if the API call fails, still leave the room UI
+      onLeaveRoom();
     }
   };
 
@@ -129,14 +154,25 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            className="text-white hover:bg-white/10"
-            onClick={onLeaveRoom}
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Leave Party
-          </Button>
+          {isHost ? (
+            <Button
+              variant="outline"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              onClick={handleEndParty}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              End Party
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={handleLeaveParty}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Leave Party
+            </Button>
+          )}
           <div className="text-center">
             <h1 className="text-white font-bold">{room.name}</h1>
             <p className="text-gray-400 text-sm">Room {room.code}</p>
@@ -280,17 +316,6 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           <MessageCircle className="w-5 h-5 mr-2" />
           Open Chat ({chatMessages.length})
         </Button>
-
-        {/* End Party Button for Host */}
-        {isHost && room.status === 'active' && (
-          <Button
-            onClick={handleEndParty}
-            variant="outline"
-            className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
-          >
-            End Party
-          </Button>
-        )}
       </div>
     </div>
   );

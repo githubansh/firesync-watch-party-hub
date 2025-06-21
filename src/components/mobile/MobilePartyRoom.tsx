@@ -16,7 +16,7 @@ interface MobilePartyRoomProps {
 }
 
 export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) => {
-  const { room, participants, chatMessages, sendSyncEvent, connectionStatus } = useRealtimeSync(roomId);
+  const { room, participants, chatMessages, sendSyncEvent, leaveRoom, endParty, connectionStatus } = useRealtimeSync(roomId);
   const [activeTab, setActiveTab] = useState<'remote' | 'chat' | 'share'>('remote');
   const [currentUsername, setCurrentUsername] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -67,6 +67,14 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
       getCurrentUser();
     }
   }, [participants, roomId]);
+
+  // Auto-leave when party is ended
+  useEffect(() => {
+    if (room?.status === 'ended') {
+      console.log('Party ended, leaving room automatically');
+      onLeaveRoom();
+    }
+  }, [room?.status, onLeaveRoom]);
 
   // Mock data for demonstration
   const mockRoom = room || {
@@ -122,9 +130,27 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
     }
   };
 
-  const handleEndParty = () => {
+  const handleEndParty = async () => {
     if (isHost) {
-      sendSyncEvent('end_party', {});
+      try {
+        await endParty();
+        // After ending party, leave the room
+        onLeaveRoom();
+      } catch (error) {
+        console.error('Failed to end party:', error);
+      }
+    }
+  };
+
+  const handleLeaveParty = async () => {
+    try {
+      await leaveRoom();
+      // After leaving room, call the parent callback
+      onLeaveRoom();
+    } catch (error) {
+      console.error('Failed to leave room:', error);
+      // Even if the API call fails, still leave the room UI
+      onLeaveRoom();
     }
   };
 
@@ -139,14 +165,25 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-lg border-b border-teal-500/30 p-4">
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            className="text-white hover:bg-teal-500/20"
-            onClick={onLeaveRoom}
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Leave Party
-          </Button>
+          {isHost ? (
+            <Button
+              variant="outline"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              onClick={handleEndParty}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              End Party
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-teal-500/20"
+              onClick={handleLeaveParty}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Leave Party
+            </Button>
+          )}
           <div className="text-center">
             <h1 className="text-white font-bold">{mockRoom.name}</h1>
             <p className="text-gray-400 text-sm">Room {mockRoom.code}</p>
@@ -322,17 +359,6 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
             </div>
           </div>
         </Card>
-
-        {/* End Party Button for Host */}
-        {isHost && mockRoom.status === 'active' && (
-          <Button
-            onClick={handleEndParty}
-            variant="outline"
-            className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
-          >
-            End Party
-          </Button>
-        )}
       </div>
     </div>
   );

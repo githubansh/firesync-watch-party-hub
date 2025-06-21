@@ -139,7 +139,7 @@ export const useRealtimeSync = (roomId: string | null) => {
           )
           .subscribe();
 
-        // Subscribe to chat messages
+        // Subscribe to chat messages - this is the key fix for real-time chat
         const chatChannel = supabase
           .channel(`chat-messages-${roomId}`)
           .on(
@@ -151,7 +151,7 @@ export const useRealtimeSync = (roomId: string | null) => {
               filter: `room_id=eq.${roomId}`,
             },
             (payload) => {
-              console.log('New chat message:', payload.new);
+              console.log('New chat message received:', payload.new);
               const newMessage = payload.new as any;
               // Ensure message_type is properly typed
               const typedMessage: ChatMessage = {
@@ -161,7 +161,9 @@ export const useRealtimeSync = (roomId: string | null) => {
               setChatMessages(prev => [...prev, typedMessage]);
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            console.log('Chat channel status:', status);
+          });
 
         channels = [roomChannel, participantChannel, syncChannel, chatChannel];
 
@@ -262,12 +264,94 @@ export const useRealtimeSync = (roomId: string | null) => {
     }
   };
 
+  const leaveRoom = async () => {
+    if (!roomId) return;
+
+    try {
+      console.log('Leaving room:', roomId);
+      
+      // Get current user information
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Prepare the request body
+      const requestBody: any = {
+        roomId,
+        action: 'leave',
+      };
+
+      // If no authenticated user, try to get user info from localStorage
+      if (!user) {
+        const storedUserId = localStorage.getItem(`room_${roomId}_userid`);
+        if (storedUserId) {
+          requestBody.userId = storedUserId;
+        }
+      }
+      
+      const { data, error } = await supabase.functions.invoke('leave-room', {
+        body: requestBody,
+      });
+
+      if (error) {
+        console.error('Leave room error:', error);
+        throw error;
+      }
+
+      console.log('Left room successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Failed to leave room:', error);
+      throw error;
+    }
+  };
+
+  const endParty = async () => {
+    if (!roomId) return;
+
+    try {
+      console.log('Ending party:', roomId);
+      
+      // Get current user information
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Prepare the request body
+      const requestBody: any = {
+        roomId,
+        action: 'end_party',
+      };
+
+      // If no authenticated user, try to get user info from localStorage
+      if (!user) {
+        const storedUserId = localStorage.getItem(`room_${roomId}_userid`);
+        if (storedUserId) {
+          requestBody.userId = storedUserId;
+        }
+      }
+      
+      const { data, error } = await supabase.functions.invoke('leave-room', {
+        body: requestBody,
+      });
+
+      if (error) {
+        console.error('End party error:', error);
+        throw error;
+      }
+
+      console.log('Party ended successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Failed to end party:', error);
+      throw error;
+    }
+  };
+
   return {
     room,
     participants,
     syncEvents,
     chatMessages,
     sendSyncEvent,
+    leaveRoom,
+    endParty,
     connectionStatus,
   };
 };

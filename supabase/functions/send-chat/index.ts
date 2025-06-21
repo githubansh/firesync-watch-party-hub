@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -26,24 +25,36 @@ serve(async (req) => {
       }
     )
 
-    const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Try to get authenticated user, but don't fail if not authenticated
+    let user = null;
+    try {
+      const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+      user = authUser;
+    } catch (error) {
+      console.log('No authenticated user, proceeding with anonymous user');
     }
 
-    const { roomId, message, messageType = 'text', voiceDuration } = await req.json()
+    const { roomId, message, messageType = 'text', voiceDuration, userId, username } = await req.json()
 
-    console.log('Chat message:', { roomId, message, messageType, voiceDuration, userId: user.id })
+    console.log('Chat message:', { roomId, message, messageType, voiceDuration, userId, username })
+
+    // For anonymous users, use the provided userId and username
+    const actualUserId = user?.id || userId;
+    const actualUsername = username || 'Anonymous';
+
+    if (!actualUserId) {
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Verify user is in the room and get their username
     const { data: participant } = await supabaseClient
       .from('participants')
       .select('username')
       .eq('room_id', roomId)
-      .eq('user_id', user.id)
+      .eq('user_id', actualUserId)
       .single()
 
     if (!participant) {
@@ -53,11 +64,14 @@ serve(async (req) => {
       )
     }
 
+    // Use the participant's username from the database
+    const finalUsername = participant.username;
+
     // Prepare the chat message data
     const chatData: any = {
       room_id: roomId,
-      user_id: user.id,
-      username: participant.username,
+      user_id: actualUserId,
+      username: finalUsername,
       message,
       message_type: messageType,
     }

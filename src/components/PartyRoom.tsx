@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +32,15 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
   
   // Mock room ID - in real app this would come from room lookup
   const roomId = 'mock-room-id'; 
-  const { room, participants, chatMessages, sendSyncEvent } = useRealtimeSync(roomId);
+  const { room, participants, chatMessages, sendSyncEvent, leaveRoom, endParty } = useRealtimeSync(roomId);
+
+  // Auto-leave when party is ended
+  useEffect(() => {
+    if (room?.status === 'ended') {
+      console.log('Party ended, leaving room automatically');
+      onLeave();
+    }
+  }, [room?.status, onLeave]);
 
   // Mock data for demonstration
   const mockRoom = room || {
@@ -84,21 +91,67 @@ export const PartyRoom = ({ roomCode, onLeave }: PartyRoomProps) => {
     }
   };
 
+  const handleEndParty = async () => {
+    if (isHost) {
+      try {
+        await endParty();
+        toast({
+          title: "Party Ended",
+          description: "The watch party has been ended",
+        });
+        onLeave();
+      } catch (error) {
+        console.error('Failed to end party:', error);
+        toast({
+          title: "Error",
+          description: "Failed to end party",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleLeaveParty = async () => {
+    try {
+      await leaveRoom();
+      toast({
+        title: "Left Party",
+        description: "You have left the watch party",
+      });
+      onLeave();
+    } catch (error) {
+      console.error('Failed to leave room:', error);
+      // Even if the API call fails, still leave the room UI
+      onLeave();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="border-[#00e6e6]/30 text-[#00e6e6] hover:bg-[#00e6e6]/10 bg-[#222299]/30 backdrop-blur-sm"
-              onClick={onLeave}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Leave
-            </Button>
+            {isHost ? (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 bg-[#222299]/30 backdrop-blur-sm"
+                onClick={handleEndParty}
+              >
+                End Party
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-[#00e6e6]/30 text-[#00e6e6] hover:bg-[#00e6e6]/10 bg-[#222299]/30 backdrop-blur-sm"
+                onClick={handleLeaveParty}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Leave
+              </Button>
+            )}
             <div>
               <h1 className="text-2xl font-bold text-white">{mockRoom.name}</h1>
               <div className="flex items-center gap-2">
