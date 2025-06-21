@@ -127,7 +127,7 @@ export const EnhancedChatSystem = ({
         <div
           className={cn(
             "rounded-lg px-3 py-2 max-w-xs sm:max-w-md",
-            isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+            isCurrentUser ? "bg-primary text-primary-foreground" : "bg-secondary"
           )}
         >
           {!isCurrentUser && <p className="text-xs font-semibold mb-1">{msg.username}</p>}
