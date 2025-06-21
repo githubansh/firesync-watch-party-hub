@@ -64,71 +64,73 @@ export const FireTVPartyRoom = ({ roomId, onLeaveRoom }: FireTVPartyRoomProps) =
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-4rem)]">
-      {/* Main Content: Video Player */}
-      <div className="lg:col-span-2 bg-card/50 rounded-lg flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <Video size={64} className="mx-auto mb-4" />
-          <p>Video Player Area</p>
-          <p className="text-sm">Sync Status: {connectionStatus}</p>
-          {room && <p className="text-sm">Content: {room.current_content_url || 'N/A'}</p>}
-        </div>
-      </div>
-
-      {/* Sidebar: Participants and Chat */}
-      <div className="flex flex-col gap-4">
-        <Card className="flex-shrink-0 bg-card/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-medium flex items-center"><Users className="mr-2" /> Participants</CardTitle>
-            <Button variant="ghost" size="sm" onClick={onLeaveRoom}><LogOut className="mr-2" /> Leave</Button>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-32">
-              <div className="space-y-2">
-                {participants.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 text-sm">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={`https://api.dicebear.com/6.x/bottts/svg?seed=${p.username}`} />
-                      <AvatarFallback>{p.username?.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span>{p.username} {p.user_id === room?.host_id && '(Host)'}</span>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-grow flex flex-col bg-card/50">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Party Chat</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full pr-4">
-              <div className="space-y-4">
-                {chatMessages.map((msg) => (
-                  <div key={msg.id} className={`flex gap-2 ${msg.user_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs p-3 rounded-lg ${msg.user_id === currentUser?.id ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
-                      <p className="font-bold text-xs">{msg.username}</p>
-                      <p className="text-sm">{msg.message}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-          <div className="p-4 border-t">
-            <form onSubmit={handleSendMessage} className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-grow"
-              />
-              <Button type="submit" size="icon"><Send /></Button>
-            </form>
+    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-4rem)] p-4">
+        {/* Main Content: Video Player */}
+        <div className="lg:col-span-2 bg-[#222299]/30 border-[#00e6e6]/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+          <div className="text-center text-gray-300">
+            <Video size={64} className="mx-auto mb-4 text-[#00e6e6]" />
+            <p>Video Player Area</p>
+            <p className="text-sm">Sync Status: {connectionStatus}</p>
+            {room && <p className="text-sm">Content: {room.current_content_url || 'N/A'}</p>}
           </div>
-        </Card>
+        </div>
+
+        {/* Sidebar: Participants and Chat */}
+        <div className="flex flex-col gap-4">
+          <Card className="flex-shrink-0 bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg font-medium flex items-center text-white"><Users className="mr-2 text-[#00e6e6]" /> Participants</CardTitle>
+              <Button variant="ghost" size="sm" onClick={onLeaveRoom} className="text-[#00e6e6] hover:bg-[#00e6e6]/10"><LogOut className="mr-2" /> Leave</Button>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-32">
+                <div className="space-y-2">
+                  {participants.map((p) => (
+                    <div key={p.id} className="flex items-center gap-2 text-sm text-white">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/bottts/svg?seed=${p.username}`} />
+                        <AvatarFallback className="bg-[#00e6e6]/20 text-[#00e6e6]">{p.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span>{p.username} {p.user_id === room?.host_id && <span className="text-[#00e6e6]">(Host)</span>}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          <Card className="flex-grow flex flex-col bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white">Party Chat</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-hidden">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-4">
+                  {chatMessages.map((msg) => (
+                    <div key={msg.id} className={`flex gap-2 ${msg.user_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs p-3 rounded-lg ${msg.user_id === currentUser?.id ? 'bg-gradient-to-r from-[#00e6e6] to-[#00cccc] text-[#111184]' : 'bg-[#222299]/50 border border-[#00e6e6]/30 text-white'}`}>
+                        <p className="font-bold text-xs">{msg.username}</p>
+                        <p className="text-sm">{msg.message}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+            <div className="p-4 border-t border-[#00e6e6]/20">
+              <form onSubmit={handleSendMessage} className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-grow bg-[#222299]/50 border-[#00e6e6]/30 text-white placeholder:text-gray-400"
+                />
+                <Button type="submit" size="icon" className="bg-[#00e6e6] text-[#111184] hover:bg-[#00cccc]"><Send /></Button>
+              </form>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

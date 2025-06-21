@@ -12,31 +12,31 @@ interface FireTVHomeProps {
 
 export const FireTVHome = ({ user, onCreateRoom, onJoinRoom, onNavigateToAuth }: FireTVHomeProps) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
-      <Card className="w-full max-w-lg bg-card/80 backdrop-blur-sm border-primary/20 shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern flex flex-col items-center justify-center">
+      <Card className="w-full max-w-lg bg-[#222299]/30 backdrop-blur-sm border-[#00e6e6]/20 shadow-lg">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
-            <Tv size={48} className="text-primary" />
+            <Tv size={48} className="text-[#00e6e6]" />
           </div>
-          <CardTitle className="text-4xl font-bold tracking-tighter bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
+          <CardTitle className="text-4xl font-bold tracking-tighter bg-gradient-to-r from-[#00e6e6] to-[#00cccc] bg-clip-text text-transparent">
             FireSync Watch Party
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8 space-y-6">
-          <p className="text-center text-muted-foreground text-lg">
+          <p className="text-center text-gray-300 text-lg">
             Welcome to the next generation of synchronized streaming.
           </p>
           <div className="grid grid-cols-1 gap-4 pt-4">
             <Button
               onClick={onCreateRoom}
-              className="w-full py-8 text-xl font-semibold bg-gradient-to-r from-primary/80 to-primary hover:from-primary hover:to-primary/80 transition-all duration-300 transform hover:scale-105 shadow-primary/30"
+              className="w-full py-8 text-xl font-semibold bg-gradient-to-r from-[#00e6e6] to-[#00cccc] hover:from-[#00cccc] hover:to-[#009999] text-[#111184] transition-all duration-300 transform hover:scale-105 shadow-[#00e6e6]/30"
             >
               <PlusCircle className="mr-4" size={28} />
               Create New Room
             </Button>
             <Button
               onClick={onJoinRoom}
-              className="w-full py-8 text-xl font-semibold bg-gradient-to-r from-secondary to-muted hover:from-muted hover:to-secondary transition-all duration-300 transform hover:scale-105"
+              className="w-full py-8 text-xl font-semibold bg-[#222299]/50 border-[#00e6e6]/30 text-[#00e6e6] hover:bg-[#00e6e6]/10 transition-all duration-300 transform hover:scale-105"
             >
               <LogIn className="mr-4" size={28} />
               Join Existing Room
@@ -44,7 +44,7 @@ export const FireTVHome = ({ user, onCreateRoom, onJoinRoom, onNavigateToAuth }:
           </div>
           {/* {!user && (
             <div className="text-center pt-4">
-              <Button variant="link" onClick={onNavigateToAuth} className="text-muted-foreground hover:text-primary">
+              <Button variant="link" onClick={onNavigateToAuth} className="text-gray-300 hover:text-[#00e6e6]">
                 Or sign in for more features
               </Button>
             </div>

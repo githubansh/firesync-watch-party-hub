@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface SyncEvent {
   id: string;
@@ -29,212 +30,97 @@ export const useRealtimeSync = (roomId: string | null) => {
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
 
-    let retryCount = 0;
-    const maxRetries = 3;
-    let channels: any[] = [];
-
-    const setupChannels = async () => {
+    const fetchInitialData = async () => {
       try {
-        setConnectionStatus('connecting');
-        
-        // Heartbeat interval to keep connection alive (especially for Firefox)
-        const heartbeatInterval = setInterval(() => {
-          try {
-            // Send a ping to keep the connection alive
-            supabase.channel('heartbeat').send({
-              type: 'broadcast',
-              event: 'ping',
-              payload: { timestamp: Date.now(), roomId }
-            });
-            
-            // Also send a presence update to keep the connection active
-            supabase.channel('presence').track({
-              user_id: 'heartbeat',
-              online_at: new Date().toISOString(),
-            });
-          } catch (error) {
-            console.warn('Heartbeat failed:', error);
-          }
-        }, 25000); // Send heartbeat every 25 seconds (more frequent for Firefox)
+        const [roomResult, participantsResult, chatResult] = await Promise.all([
+          supabase.from('rooms').select('*').eq('id', roomId).single(),
+          supabase.from('participants').select('*').eq('room_id', roomId).order('joined_at', { ascending: true }),
+          supabase.from('chat_messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
+        ]);
 
-        // Additional connection keep-alive for Firefox
-        const keepAliveInterval = setInterval(() => {
-          try {
-            // Make a simple query to keep the connection active
-            supabase.from('rooms').select('id').eq('id', roomId).limit(1);
-          } catch (error) {
-            console.warn('Keep-alive query failed:', error);
-          }
-        }, 60000); // Every minute
-
-        // Subscribe to room changes
-        const roomChannel = supabase
-          .channel(`room-changes-${roomId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'rooms',
-              filter: `id=eq.${roomId}`,
-            },
-            (payload) => {
-              console.log('Room updated:', payload.new);
-              setRoom(payload.new as Room);
-            }
-          )
-          .subscribe((status) => {
-            console.log('Room channel status:', status);
-            if (status === 'SUBSCRIBED') {
-              setConnectionStatus('connected');
-            }
-          });
-
-        // Subscribe to participant changes
-        const participantChannel = supabase
-          .channel(`participant-changes-${roomId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'participants',
-              filter: `room_id=eq.${roomId}`,
-            },
-            async () => {
-              console.log('Participants changed, refetching...');
-              // Refetch participants when changes occur
-              const { data } = await supabase
-                .from('participants')
-                .select('*')
-                .eq('room_id', roomId)
-                .order('joined_at', { ascending: true });
-              
-              if (data) {
-                setParticipants(data);
-              }
-            }
-          )
-          .subscribe();
-
-        // Subscribe to sync events
-        const syncChannel = supabase
-          .channel(`sync-events-${roomId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'sync_events',
-              filter: `room_id=eq.${roomId}`,
-            },
-            (payload) => {
-              console.log('New sync event:', payload.new);
-              setSyncEvents(prev => [...prev, payload.new as SyncEvent]);
-            }
-          )
-          .subscribe();
-
-        // Subscribe to chat messages - this is the key fix for real-time chat
-        const chatChannel = supabase
-          .channel(`chat-messages-${roomId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'chat_messages',
-              filter: `room_id=eq.${roomId}`,
-            },
-            (payload) => {
-              console.log('New chat message received:', payload.new);
-              const newMessage = payload.new as any;
-              // Ensure message_type is properly typed
-              const typedMessage: ChatMessage = {
-                ...newMessage,
-                message_type: newMessage.message_type as ChatMessage['message_type'] || 'text'
-              };
-              setChatMessages(prev => [...prev, typedMessage]);
-            }
-          )
-          .subscribe((status) => {
-            console.log('Chat channel status:', status);
-          });
-
-        channels = [roomChannel, participantChannel, syncChannel, chatChannel];
-
-        // Initial data fetch
-        const fetchInitialData = async () => {
-          console.log('Fetching initial data for room:', roomId);
-          
-          try {
-            const [roomResult, participantsResult, chatResult] = await Promise.all([
-              supabase.from('rooms').select('*').eq('id', roomId).single(),
-              supabase.from('participants').select('*').eq('room_id', roomId).order('joined_at', { ascending: true }),
-              supabase.from('chat_messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
-            ]);
-
-            if (roomResult.data) {
-              console.log('Room data:', roomResult.data);
-              setRoom(roomResult.data);
-            }
-            if (participantsResult.data) {
-              console.log('Participants data:', participantsResult.data);
-              setParticipants(participantsResult.data);
-            }
-            if (chatResult.data) {
-              console.log('Chat messages data:', chatResult.data);
-              // Ensure all messages have proper typing
-              const typedMessages: ChatMessage[] = chatResult.data.map(msg => ({
-                ...msg,
-                message_type: msg.message_type as ChatMessage['message_type'] || 'text'
-              }));
-              setChatMessages(typedMessages);
-            }
-            
-            setConnectionStatus('connected');
-          } catch (error) {
-            console.error('Error fetching initial data:', error);
-            setConnectionStatus('error');
-          }
-        };
-
-        fetchInitialData();
-
-        return () => {
-          clearInterval(heartbeatInterval);
-          clearInterval(keepAliveInterval);
-          channels.forEach(channel => {
-            if (channel) {
-              supabase.removeChannel(channel);
-            }
-          });
-        };
-      } catch (error) {
-        console.error('Error setting up channels:', error);
-        setConnectionStatus('error');
-        
-        // Retry logic
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`Retrying connection (${retryCount}/${maxRetries})...`);
-          setTimeout(() => {
-            setupChannels();
-          }, 2000 * retryCount); // Exponential backoff
+        if (roomResult.data) setRoom(roomResult.data);
+        if (participantsResult.data) setParticipants(participantsResult.data);
+        if (chatResult.data) {
+          const typedMessages: ChatMessage[] = chatResult.data.map(msg => ({
+            ...msg,
+            message_type: msg.message_type as ChatMessage['message_type'] || 'text'
+          }));
+          setChatMessages(typedMessages);
         }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setConnectionStatus('error');
       }
     };
 
-    const cleanup = setupChannels();
+    fetchInitialData();
+    
+    const channel = supabase.channel(`room-${roomId}`, {
+      config: {
+        presence: {
+          key: localStorage.getItem(`room_${roomId}_username`) || `user-${Date.now()}`
+        },
+      }
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const presenceState = channel.presenceState();
+        const newParticipants = Object.values(presenceState).map((p: any) => p[0]);
+        setParticipants(newParticipants);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, 
+        (payload) => {
+          setRoom(payload.new as Room);
+        }
+      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` }, 
+        (payload) => {
+          const newMessage = payload.new as any;
+          const typedMessage: ChatMessage = {
+            ...newMessage,
+            message_type: newMessage.message_type as ChatMessage['message_type'] || 'text'
+          };
+          setChatMessages(prev => [...prev, typedMessage]);
+        }
+      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sync_events', filter: `room_id=eq.${roomId}` },
+        (payload) => {
+          setSyncEvents(prev => [...prev, payload.new as SyncEvent]);
+        }
+      )
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+          // This is the fix: track presence only after successful subscription
+          const user_id = (await supabase.auth.getUser()).data.user?.id || 'anonymous';
+          const username = localStorage.getItem(`room_${roomId}_username`) || 'Anonymous';
+          
+          await channel.track({
+            user_id,
+            username,
+            online_at: new Date().toISOString(),
+          });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setConnectionStatus('error');
+        } else {
+          setConnectionStatus('connecting');
+        }
+      });
+      
+    channelRef.current = channel;
 
     return () => {
-      cleanup.then(cleanupFn => {
-        if (cleanupFn) cleanupFn();
-      });
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [roomId]);
 

@@ -82,7 +82,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
 
   if (!room) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern flex items-center justify-center p-4">
         <div className="text-white">Loading room...</div>
       </div>
     );
@@ -90,13 +90,13 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
 
   if (showChat) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
         {/* Chat Header */}
-        <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
+        <div className="bg-[#222299]/30 backdrop-blur-lg border-b border-[#00e6e6]/20 p-4">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-[#00e6e6]/10"
               onClick={() => setShowChat(false)}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -112,9 +112,9 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-3">
               {chatMessages.map((msg) => (
-                <div key={msg.id} className="bg-white/5 rounded-lg p-3">
+                <div key={msg.id} className="bg-[#222299]/30 border border-[#00e6e6]/20 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-orange-400">{msg.username}</span>
+                    <span className="font-semibold text-[#00e6e6]">{msg.username}</span>
                     <span className="text-xs text-gray-400">
                       {new Date(msg.created_at).toLocaleTimeString()}
                     </span>
@@ -126,19 +126,19 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="p-4 bg-black/20 backdrop-blur-lg border-t border-white/10">
+          <div className="p-4 bg-[#222299]/30 backdrop-blur-lg border-t border-[#00e6e6]/20">
             <div className="flex gap-2">
               <Input
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                className="bg-[#222299]/50 border-[#00e6e6]/30 text-white placeholder:text-gray-400"
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={chatLoading || !chatMessage.trim()}
-                className="bg-gradient-to-r from-purple-500 to-pink-500"
+                className="bg-gradient-to-r from-[#00e6e6] to-[#00cccc] text-[#111184] hover:from-[#00cccc] hover:to-[#009999]"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -150,9 +150,9 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
       {/* Header */}
-      <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
+      <div className="bg-[#222299]/30 backdrop-blur-lg border-b border-[#00e6e6]/20 p-4">
         <div className="flex items-center justify-between">
           {isHost ? (
             <Button
@@ -166,7 +166,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
           ) : (
             <Button
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-[#00e6e6]/10"
               onClick={handleLeaveParty}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -178,7 +178,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
             <p className="text-gray-400 text-sm">Room {room.code}</p>
           </div>
           <Badge className={
-            room.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+            room.status === 'active' ? 'bg-[#00e6e6]/20 text-[#00e6e6] border-[#00e6e6]/30' :
             room.status === 'waiting' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
             'bg-red-500/20 text-red-400 border-red-500/30'
           }>
@@ -190,7 +190,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
       <div className="p-4 space-y-6">
         {/* Host Controls */}
         {isHost && room.status === 'waiting' && (
-          <Card className="bg-green-500/10 border-green-500/20 p-4">
+          <Card className="bg-[#00e6e6]/10 border-[#00e6e6]/20 p-4">
             <div className="text-center">
               <h3 className="font-semibold text-white mb-2">Ready to start?</h3>
               <p className="text-gray-400 text-sm mb-4">
@@ -198,7 +198,7 @@ export const MobilePartyRoom = ({ roomId, onLeaveRoom }: MobilePartyRoomProps) =
               </p>
               <Button
                 onClick={handleStartParty}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                className="bg-gradient-to-r from-[#00e6e6] to-[#00cccc] hover:from-[#00cccc] hover:to-[#009999] text-[#111184]"
               >
                 Start Party
               </Button>

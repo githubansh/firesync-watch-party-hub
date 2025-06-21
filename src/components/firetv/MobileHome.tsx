@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -25,15 +24,15 @@ interface MobileHomeProps {
 
 export const MobileHome = ({ user, onCreateRoom, onJoinRoom, onSignOut }: MobileHomeProps) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[#111184] via-[#1a1a9a] to-[#222299] grid-pattern">
       <div className="container mx-auto px-8 py-16">
         {/* Mobile Home Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-4 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-              <Zap className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-gradient-to-r from-[#00e6e6] to-[#00cccc] rounded-xl flex items-center justify-center">
+              <Zap className="w-10 h-10 text-[#111184]" />
             </div>
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-[#00e6e6] to-[#00cccc] bg-clip-text text-transparent">
               FireSync
             </h1>
           </div>
@@ -47,7 +46,7 @@ export const MobileHome = ({ user, onCreateRoom, onJoinRoom, onSignOut }: Mobile
         <div className="text-center mb-16">
           <Button 
             size="lg" 
-            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-12 py-6 text-2xl flex-1"
+            className="bg-gradient-to-r from-[#00e6e6] to-[#00cccc] hover:from-[#00cccc] hover:to-[#009999] text-[#111184] px-12 py-6 text-2xl flex-1"
             onClick={onCreateRoom}
           >
             <Tv className="w-8 h-8 mr-4" />
@@ -58,25 +57,25 @@ export const MobileHome = ({ user, onCreateRoom, onJoinRoom, onSignOut }: Mobile
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-white" />
+          <Card className="bg-[#222299]/30 backdrop-blur-lg border-[#00e6e6]/20 p-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-[#00e6e6] to-[#00cccc] rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-[#111184]" />
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Easy Room Creation</h3>
             <p className="text-gray-400">Generate a 6-digit code for family to join instantly</p>
           </Card>
           
-          <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-8 h-8 text-white" />
+          <Card className="bg-[#222299]/30 backdrop-blur-lg border-[#00e6e6]/20 p-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-[#00e6e6] to-[#00cccc] rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-8 h-8 text-[#111184]" />
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Perfect Sync</h3>
             <p className="text-gray-400">All Fire TVs play content at identical timestamps</p>
           </Card>
           
-          <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Wifi className="w-8 h-8 text-white" />
+          <Card className="bg-[#222299]/30 backdrop-blur-lg border-[#00e6e6]/20 p-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-[#00e6e6] to-[#00cccc] rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Wifi className="w-8 h-8 text-[#111184]" />
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Auto-Discovery</h3>
             <p className="text-gray-400">Automatically finds all Fire TVs on your WiFi</p>
@@ -84,9 +83,9 @@ export const MobileHome = ({ user, onCreateRoom, onJoinRoom, onSignOut }: Mobile
         </div>
 
         {/* Device Info Card */}
-        <Card className="bg-white/5 backdrop-blur-lg border-white/10 p-8">
+        <Card className="bg-[#222299]/30 backdrop-blur-lg border-[#00e6e6]/20 p-8">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
-            <Tv className="w-6 h-6" />
+            <Tv className="w-6 h-6 text-[#00e6e6]" />
             Device Information
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
@@ -100,7 +99,7 @@ export const MobileHome = ({ user, onCreateRoom, onJoinRoom, onSignOut }: Mobile
             </div>
             <div>
               <Label className="text-gray-400">Status</Label>
-              <Badge className="bg-green-500/20 text-green-400">Connected</Badge>
+              <Badge className="bg-[#00e6e6]/20 text-[#00e6e6] border-[#00e6e6]/30">Connected</Badge>
             </div>
           </div>
         </Card>
